@@ -13,9 +13,6 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: desktop
     strategy:
       fail-fast: false
       matrix:
@@ -64,9 +61,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: desktop
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
