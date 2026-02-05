@@ -41,6 +41,8 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
         run: npm ci
 
       - name: Install Linux packaging deps
