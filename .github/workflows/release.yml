@@ -17,12 +17,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
-            build_cmd: npm run dist
+          - os: macos-14   # Apple Silicon
+            build_cmd: npx electron-builder --mac dmg zip --arm64 --publish=never
+            artifact_name: mac-arm64
+          - os: macos-13   # Intel
+            build_cmd: npx electron-builder --mac dmg zip --x64 --publish=never
+            artifact_name: mac-x64
           - os: windows-latest
             build_cmd: npx electron-builder --win nsis --publish=never
+            artifact_name: windows
           - os: ubuntu-latest
             build_cmd: npx electron-builder --linux AppImage --publish=never
+            artifact_name: linux
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,7 +56,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ matrix.os }}
+          name: dist-${{ matrix.artifact_name }}
           path: |
             dist/**
           if-no-files-found: error

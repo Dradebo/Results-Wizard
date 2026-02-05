@@ -24,20 +24,7 @@
       "**/*"
     ],
     "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "universal"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "universal"
-          ]
-        }
-      ],
+      "target": ["dmg", "zip"],
       "mergeASARs": true,
       "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/@napi-rs/**",
       "sign": false,
