@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PLE Import Prep</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-bar">
+        <div class="brand">
+          <div class="logo">PLE</div>
+          <div>
+            <div class="title">PLE Import Prep</div>
+            <div class="subtitle">PDF ingest and validation workspace</div>
+          </div>
+        </div>
+        <div class="steps">
+          <button class="step active" data-step="ingest">1. Ingestion</button>
+          <button class="step" data-step="mapping">2. Orgunit Mapping</button>
+          <button class="step" data-step="validate">3. Validation</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section id="ingest" class="panel active">
+          <div class="panel-header">
+            <h1>Ingestion</h1>
+            <p>Import PDFs, choose where to save the workbook, then run the conversion.</p>
+          </div>
+
+          <div class="grid">
+            <div class="card">
+              <h2>Step 1: Select input files</h2>
+              <p>Choose one or more PDF results files.</p>
+              <button id="pick-pdfs" class="primary">Choose input PDFs</button>
+              <div id="pdf-list" class="file-list empty">No PDFs selected.</div>
+            </div>
+
+            <div class="card">
+              <h2>Step 2: Choose output file</h2>
+              <p>Pick where the cleaned Excel workbook should be saved.</p>
+              <button id="pick-output" class="primary">Choose output</button>
+              <div id="output-path" class="file-list empty">No output selected.</div>
+            </div>
+
+            <div class="card">
+              <h2>Step 3: Run conversion</h2>
+              <p>Create the workbook with clean sheets and pivots.</p>
+              <button id="run" class="primary large">Run conversion</button>
+              <div id="status" class="status">Ready.</div>
+              <div id="conversion-progress" class="progress-bar hidden">
+                <div id="conversion-progress-fill" class="progress-fill"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="validate" class="panel">
+          <div class="panel-header">
+              <div class="panel-title-row">
+                <div>
+                  <h1>Validation</h1>
+                  <p>Review the workbook output and key counts.</p>
+                </div>
+                <div class="title-actions">
+                  <button id="export-csv" class="ghost">Export CSV</button>
+                  <button id="go-mapping" class="primary">Back to mapping</button>
+                </div>
+              </div>
+            </div>
+
+          <div class="validation-shell">
+            <div class="card">
+              <h2>Workbook Preview</h2>
+              <div class="preview-controls">
+                <select id="sheet-select"></select>
+                <button id="open-workbook" class="ghost">Open Workbook</button>
+                <button id="refresh" class="ghost">Refresh Preview</button>
+              </div>
+              <div id="workbook-path" class="file-list empty">No workbook loaded.</div>
+              <div class="table-wrap">
+                <table id="preview-table"></table>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Validation Summary</h2>
+              <p>Totals computed from the full workbook.</p>
+              <div id="summary" class="summary-grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="mapping" class="panel">
+          <div class="panel-header">
+            <div class="panel-title-row">
+              <div>
+                <h1>School Mapping</h1>
+                <p>Match schools to DHIS2 org units before import.</p>
+              </div>
+              <div class="card tips-inline">
+                <h2>Mapping Tip</h2>
+                <div id="tip-text" class="tip-text">Confirm school names before selecting org units.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mapping-shell">
+            <aside class="card sidebar">
+              <h2>Step 1: Hierarchy Scope</h2>
+              <p>Select a hierarchy level to narrow org unit scope.</p>
+              <div class="mapping-actions">
+                <label>
+                  Saved profiles
+                  <select id="profile-select"></select>
+                </label>
+                <button id="load-profile" class="ghost">Load profile</button>
+                <label>
+                  DHIS2 URL
+                  <input id="dhis2-url" placeholder="https://dhis2.example.org" />
+                </label>
+                <label>
+                  Username
+                  <input id="dhis2-user" placeholder="admin" />
+                </label>
+                <label>
+                  Password
+                  <input id="dhis2-pass" placeholder="••••••••" type="password" />
+                </label>
+                <label>
+                  Profile name
+                  <input id="profile-name" placeholder="e.g. Wakiso District" />
+                </label>
+                <button id="save-profile" class="ghost">Save profile</button>
+                <button id="fetch-hierarchy" class="primary">Fetch hierarchy</button>
+                <div id="orgunit-loading" class="progress-bar hidden indeterminate">
+                  <div class="progress-fill"></div>
+                </div>
+              </div>
+            </aside>
+
+            <aside class="card sidebar">
+              <h2>Step 2: Org Unit Filters</h2>
+              <p>Select a level and org unit, then drill down as needed before choosing the target UID level.</p>
+              <div class="mapping-disabled">
+                <div id="drilldown-container" class="drilldown-controls"></div>
+                <label>
+                  Target org unit level
+                  <select id="target-level"></select>
+                </label>
+                <button id="run-automatch" class="primary">Fetch mapping</button>
+                <div id="mapping-loading" class="progress-bar hidden indeterminate">
+                  <div class="progress-fill"></div>
+                </div>
+              </div>
+            </aside>
+
+            <div class="card">
+              <h2>Step 3: Mapping Panel</h2>
+              <p>Confirm suggested org units before writing IDs to the workbook.</p>
+              <div class="mapping-controls">
+                <button id="apply-matches" class="primary">Proceed to validation</button>
+                <button id="export-csv-mapping" class="ghost">Export CSV</button>
+              </div>
+              <div id="automatch-status" class="status">Automatch not run.</div>
+              <div id="mapping-count" class="status">No schools loaded.</div>
+              <div class="table-wrap">
+                <table id="mapping-table"></table>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="export-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+        <button id="export-modal-close" class="modal-close" aria-label="Close export dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6l-12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <h3 id="export-modal-title">Export CSV</h3>
+        <p id="export-modal-body">Do you want to update the existing export or save a new version?</p>
+        <div class="modal-actions">
+          <button id="export-update" class="ghost">Update existing CSV</button>
+          <button id="export-new" class="primary">Save new version</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

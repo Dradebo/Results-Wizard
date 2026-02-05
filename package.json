@@ -1,0 +1,55 @@
+{
+  "name": "ple-import-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "pdfjs-dist": "^4.10.38"
+  },
+  "devDependencies": {
+    "electron": "^40.1.0",
+    "electron-builder": "^26.7.0"
+  },
+  "build": {
+    "appId": "com.ple.importprep",
+    "productName": "PLE Import Prep",
+    "afterPack": "scripts/afterPack.js",
+    "files": [
+      "**/*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "mergeASARs": true,
+      "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/@napi-rs/**",
+      "sign": false,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null,
+      "forceCodeSigning": false
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  }
+}

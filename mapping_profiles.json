@@ -1,0 +1,16 @@
+{
+  "MSMC": {
+    "dhis2Url": "https://dev.emisuganda.org/emisdev",
+    "dhis2User": "hisp.satibuni",
+    "dhis2Pass": "ovZclmO5/1wFLEKXifSTu38ichIvoEpFeRCnVJHKmzoQVtlokw==",
+    "ancestorLevel": "District",
+    "districtLevel": "",
+    "parishLevel": "",
+    "schoolLevel": "",
+    "targetLevel": "Schools",
+    "workbookDistrict": "",
+    "workbookParish": "",
+    "workbookSchoolName": "",
+    "workbookSchoolCode": ""
+  }
+}
