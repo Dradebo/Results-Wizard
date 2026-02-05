@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m"
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --publish=never"
   },
   "dependencies": {
     "exceljs": "^4.4.0",

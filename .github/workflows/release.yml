@@ -20,9 +20,9 @@ jobs:
           - os: macos-14
             build_cmd: npm run dist
           - os: windows-latest
-            build_cmd: npx electron-builder --win nsis
+            build_cmd: npx electron-builder --win nsis --publish=never
           - os: ubuntu-latest
-            build_cmd: npx electron-builder --linux AppImage
+            build_cmd: npx electron-builder --linux AppImage --publish=never
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           CI: "true"
-        run: ${{ matrix.build_cmd }} --publish never
+        run: ${{ matrix.build_cmd }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
