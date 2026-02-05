@@ -80,7 +80,8 @@ jobs:
       - name: Collect release files
         run: |
           mkdir -p release_upload
-          find dist -type f -maxdepth 4 -print -exec cp {} release_upload \;
+          # Keep only installer formats: mac zip, Windows exe, Linux AppImage
+          find dist -maxdepth 4 -type f \( -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" \) -print -exec cp {} release_upload \;
           ls -lh release_upload
 
       - name: Create GitHub release
