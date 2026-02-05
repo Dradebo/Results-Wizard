@@ -18,10 +18,10 @@ jobs:
       matrix:
         include:
           - os: macos-latest   # Apple Silicon (macOS 15 arm)
-            build_cmd: npx electron-builder --mac dmg zip --arm64 --publish=never
+            build_cmd: npx electron-builder --mac zip --arm64 --publish=never
             artifact_name: mac-arm64
           - os: macos-15-intel   # Intel (macOS 15 x64)
-            build_cmd: npx electron-builder --mac dmg zip --x64 --publish=never
+            build_cmd: npx electron-builder --mac zip --x64 --publish=never
             artifact_name: mac-x64
           - os: windows-latest
             build_cmd: npx electron-builder --win nsis --publish=never
