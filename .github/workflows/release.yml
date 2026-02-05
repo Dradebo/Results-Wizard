@@ -1,5 +1,8 @@
 name: Release Builds
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -40,10 +43,9 @@ jobs:
 
       - name: Build Electron app
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           CI: "true"
-        run: ${{ matrix.build_cmd }}
+        run: ${{ matrix.build_cmd }} --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
