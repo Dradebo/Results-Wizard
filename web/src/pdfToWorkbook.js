@@ -459,6 +459,56 @@ function buildDivSheet(records) {
   return { rows, headers };
 }
 
+function buildSubjectSheet(records, subject) {
+  if (!records.length) return { rows: [], headers: [] };
+  const indexCols = ["school_name", "school_id", "year"].filter((col) => records.some((row) => row[col] !== undefined));
+
+  const rowMap = new Map();
+  records.forEach((row) => {
+    const scoreRaw = String(row[subject] || "").trim();
+    const score = /^\d+$/.test(scoreRaw) ? scoreRaw : "X";
+    const sex = String(row.sex || "").trim().toUpperCase();
+    const key = indexCols.map((col) => row[col] || "").join("||");
+    if (!rowMap.has(key)) {
+      const base = {};
+      indexCols.forEach((col) => { base[col] = row[col] || ""; });
+      rowMap.set(key, { base, counts: {} });
+    }
+    const entry = rowMap.get(key);
+    const column = `${score}${sex}`;
+    entry.counts[column] = (entry.counts[column] || 0) + 1;
+  });
+
+  const desiredScores = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "X"];
+  const desiredCols = [];
+  desiredScores.forEach((score) => {
+    ["F", "M"].forEach((sex) => {
+      let label = `${score}${sex}`;
+      if (score === "3" && sex === "F") label = "3f";
+      if (score === "4" && sex === "M") label = "4m";
+      desiredCols.push(label);
+    });
+  });
+
+  const rows = [];
+  rowMap.forEach((entry) => {
+    const row = { ...entry.base };
+    desiredCols.forEach((col) => {
+      const lookup = col === "3f" ? "3F" : col === "4m" ? "4M" : col;
+      row[col] = entry.counts[lookup] || 0;
+    });
+    if (row.school_name !== undefined) row["sch name"] = row.school_name;
+    if (row.school_id !== undefined) row["sch id"] = row.school_id;
+    if (row.year !== undefined) row.Year1 = row.year;
+    delete row.school_name;
+    delete row.school_id;
+    delete row.year;
+    rows.push(row);
+  });
+  const headers = ["sch name", "sch id", "Year1", ...desiredCols].filter((h) => rows.length && h in rows[0]);
+  return { rows, headers };
+}
+
 function addSheet(workbook, name, headers, rows) {
   const sheet = workbook.addWorksheet(name);
   if (!headers.length) return sheet;
@@ -473,16 +523,15 @@ function addSheet(workbook, name, headers, rows) {
 
 function sheetPreview(sheet, limit = 30) {
   const values = sheet.getSheetValues();
-  const rows = [];
-  for (let i = 1; i < values.length; i += 1) {
-    if (rows.length >= limit) break;
+  const headers = sheet.getRow(1).values.slice(1);
+  const body = [];
+  for (let i = 2; i < values.length; i += 1) {
+    if (body.length >= limit) break;
     const row = values[i];
     if (!row) continue;
     const normalized = Array.isArray(row) ? row.slice(1) : Object.values(row || {});
-    rows.push(normalized.map((cell) => (cell === null || cell === undefined ? "" : cell)));
+    body.push(normalized.map((cell) => (cell === null || cell === undefined ? "" : cell)));
   }
-  const headers = rows.length ? rows[0].map((_, idx) => sheet.getRow(1).getCell(idx + 1).value || "") : [];
-  const body = rows.length > 1 ? rows.slice(1) : [];
   return { headers, rows: body };
 }
 
@@ -521,13 +570,43 @@ export async function convertPdfsToWorkbook(files, onProgress = () => {}) {
   const pivot = buildPivot(allRecords);
   const divSheet = buildDivSheet(allRecords);
   const divTotals = buildDivisionTotals(allRecords);
+  const engSheet = buildSubjectSheet(allRecords, "eng");
+  const sciSheet = buildSubjectSheet(allRecords, "sci");
+  const sstSheet = buildSubjectSheet(allRecords, "sst");
+  const mathSheet = buildSubjectSheet(allRecords, "math");
 
   const sheets = {
+    raw_records: addSheet(
+      workbook,
+      "raw_records",
+      [
+        "district",
+        "school_uneb",
+        "school_name",
+        "year",
+        "index_no",
+        "learner_name",
+        "sex",
+        "eng",
+        "sci",
+        "sst",
+        "math",
+        "aggr",
+        "div",
+        "source_pdf",
+        "page"
+      ],
+      allRecords
+    ),
     WORKING: addSheet(workbook, "WORKING", working.headers, working.rows),
     pivot_import: addSheet(workbook, "pivot_import", pivot.headers, pivot.rows),
+    pivot_division_total: addSheet(workbook, "pivot_division_total", divTotals.headers, divTotals.rows),
     div: addSheet(workbook, "div", divSheet.headers, divSheet.rows),
-    div_totals: addSheet(workbook, "div_totals", divTotals.headers, divTotals.rows),
-    qa_raw: addSheet(workbook, "qa_raw", ["source_pdf", "page", "raw_text"], allQa)
+    eng: addSheet(workbook, "eng", engSheet.headers, engSheet.rows),
+    sci: addSheet(workbook, "sci", sciSheet.headers, sciSheet.rows),
+    SST: addSheet(workbook, "SST", sstSheet.headers, sstSheet.rows),
+    mATH: addSheet(workbook, "mATH", mathSheet.headers, mathSheet.rows),
+    qa_issues: addSheet(workbook, "qa_issues", ["source_pdf", "page", "raw_text"], allQa)
   };
 
   const previews = {};
