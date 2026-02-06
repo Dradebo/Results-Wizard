@@ -15,6 +15,7 @@ const pdfList = document.getElementById("pdf-list");
 const statusEl = document.getElementById("status");
 const runBtn = document.getElementById("run");
 const downloadBtn = document.getElementById("download");
+const downloadReviewBtn = document.getElementById("download-review");
 const downloadHint = document.getElementById("download-hint");
 const progressBar = document.getElementById("conversion-progress");
 const progressFill = document.getElementById("conversion-progress-fill");
@@ -142,6 +143,7 @@ async function handleRun() {
   }
   setStatus("Parsing PDFs…", "info");
   downloadBtn.disabled = true;
+  if (downloadReviewBtn) downloadReviewBtn.disabled = true;
   downloadHint.textContent = "Working…";
   setProgress(0, 1);
 
@@ -155,6 +157,7 @@ async function handleRun() {
     state.summary = summary;
     setStatus("Conversion complete.", "success");
     downloadBtn.disabled = false;
+    if (downloadReviewBtn) downloadReviewBtn.disabled = false;
     downloadHint.textContent = "Ready to download.";
     populateSheets();
     renderSummary(summary);
@@ -170,6 +173,7 @@ async function handleRun() {
 async function handleDownload() {
   if (!state.workbook) return;
   downloadBtn.disabled = true;
+  if (downloadReviewBtn) downloadReviewBtn.disabled = true;
   downloadHint.textContent = "Building workbook…";
   const buffer = await state.workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -183,6 +187,7 @@ async function handleDownload() {
   URL.revokeObjectURL(url);
   downloadHint.textContent = "Workbook downloaded.";
   downloadBtn.disabled = false;
+  if (downloadReviewBtn) downloadReviewBtn.disabled = false;
 }
 
 pdfInput.addEventListener("change", (event) => {
@@ -193,6 +198,7 @@ pdfInput.addEventListener("change", (event) => {
 
 runBtn.addEventListener("click", handleRun);
 downloadBtn.addEventListener("click", handleDownload);
+if (downloadReviewBtn) downloadReviewBtn.addEventListener("click", handleDownload);
 refreshBtn.addEventListener("click", () => {
   const sheet = sheetSelect.value;
   if (sheet) renderPreview(sheet);
