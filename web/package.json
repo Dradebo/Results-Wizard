@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "exceljs": "^4.4.0",
+    "html2canvas": "^1.4.1",
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {

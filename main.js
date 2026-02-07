@@ -459,6 +459,104 @@ ipcMain.handle("workbook-summary", async (_event, filePath) => {
   return { ok: true, summary };
 });
 
+ipcMain.handle("workbook-records", async (_event, filePath) => {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { ok: false, error: "Workbook not found." };
+  }
+
+  const workbook = await loadWorkbook(filePath);
+  const sheet = workbook.getWorksheet("WORKING") || workbook.getWorksheet("raw_records");
+  if (!sheet) {
+    return { ok: false, error: "WORKING/raw_records sheet missing." };
+  }
+
+  const rows = worksheetToJson(sheet);
+  const records = rows.map((row) => ({
+    year: row.Year1 || row.year || row.Year || "",
+    school_name: row["sch name"] || row.school_name || "",
+    school_id: row["sch id"] || row.school_id || row.school_uneb || "",
+    school_uneb: row.school_uneb || row["sch code"] || "",
+    district: row.district || row.District || "",
+    parish_name: row.parish_name || row.parish || row.Parish || "",
+    parish_id: row.parish_id || row.Parish_ID || "",
+    learner_name: row.NAME || row.learner_name || "",
+    index_no: row.Index_No || row.index_no || "",
+    sex: row.SEX || row.sex || "",
+    div: row.DIV || row.div || "",
+    eng: row.ENG || row.eng || "",
+    sci: row.SCI || row.sci || "",
+    sst: row.SST || row.sst || "",
+    math: row.MATH || row.math || "",
+    aggr: row.AGGR || row.aggr || ""
+  }));
+
+  return { ok: true, records };
+});
+
+function getSessionFilePath() {
+  return path.join(app.getPath("userData"), "ple-import-session.json");
+}
+
+ipcMain.handle("load-dashboard-session", async () => {
+  try {
+    const sessionPath = getSessionFilePath();
+    if (!fs.existsSync(sessionPath)) {
+      return { ok: false, error: "No saved session." };
+    }
+    const raw = await fs.promises.readFile(sessionPath, "utf8");
+    const session = JSON.parse(raw);
+    return { ok: true, session };
+  } catch (error) {
+    return { ok: false, error: error.message || "Failed to load session." };
+  }
+});
+
+ipcMain.handle("save-dashboard-session", async (_event, payload) => {
+  try {
+    if (!payload) return { ok: false, error: "Missing session payload." };
+    const sessionPath = getSessionFilePath();
+    await fs.promises.writeFile(sessionPath, JSON.stringify(payload, null, 2));
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message || "Failed to save session." };
+  }
+});
+
+ipcMain.handle("clear-dashboard-session", async () => {
+  try {
+    const sessionPath = getSessionFilePath();
+    if (fs.existsSync(sessionPath)) {
+      await fs.promises.unlink(sessionPath);
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message || "Failed to clear session." };
+  }
+});
+
+ipcMain.handle("save-dashboard-export", async (_event, payload) => {
+  const { defaultPath, dataUrl } = payload || {};
+  if (!dataUrl) {
+    return { ok: false, error: "Missing image data." };
+  }
+  const fallbackName = defaultPath || "dashboard-export.png";
+  const initialPath = path.join(app.getPath("downloads"), fallbackName);
+  const result = await dialog.showSaveDialog({
+    title: "Save dashboard export",
+    defaultPath: initialPath,
+    filters: [{ name: "PNG Image", extensions: ["png"] }]
+  });
+  if (result.canceled || !result.filePath) {
+    return { ok: false, canceled: true };
+  }
+  const base64 = String(dataUrl).split(",")[1] || "";
+  if (!base64) {
+    return { ok: false, error: "Invalid image data." };
+  }
+  await fs.promises.writeFile(result.filePath, Buffer.from(base64, "base64"));
+  return { ok: true, filePath: result.filePath };
+});
+
 ipcMain.handle("export-csv", async (_event, payload) => {
   const { filePath, sheetName, outputPath } = payload;
   if (!filePath || !fs.existsSync(filePath)) {

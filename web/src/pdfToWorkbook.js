@@ -616,5 +616,5 @@ export async function convertPdfsToWorkbook(files, onProgress = () => {}) {
 
   const summary = buildSummary(allRecords, allQa);
 
-  return { workbook, previews, summary };
+  return { workbook, previews, summary, records: allRecords };
 }

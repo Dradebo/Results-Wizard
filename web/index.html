@@ -20,6 +20,7 @@
         <div class="steps">
           <button class="step active" data-step="ingest">1. Ingest</button>
           <button class="step" data-step="review">2. Review</button>
+          <button class="step" data-step="dashboard">3. Dashboard</button>
         </div>
       </header>
 
@@ -91,6 +92,393 @@
               <p>Snapshot totals derived from the generated workbook.</p>
               <div id="summary" class="summary-grid"></div>
               <div class="tip-box" id="qa-note"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="dashboard" class="panel">
+          <div class="panel-header">
+            <div class="panel-title-row">
+              <div>
+                <h1>Results Dashboard</h1>
+                <p>Instant visuals for a quick read, with deeper exploration when you need it.</p>
+              </div>
+              <div class="title-actions">
+                <button id="toggle-customise" class="ghost export-ignore">Customise</button>
+                <button id="export-dashboard" class="ghost export-ignore" disabled>Export dashboard</button>
+                <button id="dashboard-refresh" class="ghost">Refresh dashboard</button>
+                <button id="download-dashboard" class="ghost" disabled>Download workbook</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="dashboard-kpis" class="summary-grid kpi-grid"></div>
+
+          <div class="dashboard-controls">
+            <label>
+              Success rate
+              <select id="success-definition">
+                <option value="standard" selected>Standard (Div 1-4)</option>
+                <option value="strict">Strict (Div 1-2)</option>
+              </select>
+            </label>
+            <label>
+              Include absentees (X)
+              <select id="include-x">
+                <option value="exclude" selected>Exclude from rates</option>
+                <option value="include">Include in rates</option>
+              </select>
+            </label>
+            <label>
+              Division view
+              <select id="division-view">
+                <option value="percent" selected>Percent</option>
+                <option value="count">Counts</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Division Outcomes</h2>
+                    <p>How learners are distributed across divisions.</p>
+                  </div>
+                  <button id="export-division" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div id="division-chart" class="chart-body"></div>
+              <div id="division-legend" class="chart-legend"></div>
+            </div>
+
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Subject Mix</h2>
+                    <p>Distinction, credit, pass, and fail share by subject.</p>
+                  </div>
+                  <button id="export-subject" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div id="subject-chart" class="chart-body"></div>
+              <div id="subject-legend" class="chart-legend"></div>
+            </div>
+
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Gender Parity</h2>
+                    <p>Division outcomes split by sex.</p>
+                  </div>
+                  <button id="export-parity" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div id="parity-chart" class="chart-body"></div>
+              <div id="parity-legend" class="chart-legend"></div>
+            </div>
+
+            <div class="card chart-card">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Top Schools</h2>
+                    <p>Lowest average aggregate scores and strongest division performance.</p>
+                  </div>
+                  <button id="export-school" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div id="school-chart" class="chart-body"></div>
+            </div>
+
+            <div class="card chart-card wide">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Intervention Required</h2>
+                    <p>Learners with Division U or subject Grade 9.</p>
+                  </div>
+                  <button id="export-intervention" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div id="intervention-list" class="intervention-list"></div>
+            </div>
+
+            <div class="card chart-card customise-only">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Gender Gap by Subject</h2>
+                    <p>Distinction rate (Grades 1-2) for girls vs boys.</p>
+                  </div>
+                  <button id="export-gap" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div id="gap-chart" class="chart-body"></div>
+              <div id="gap-legend" class="chart-legend"></div>
+            </div>
+
+            <div class="card chart-card wide customise-only" id="custom-builder">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Custom Visualizer</h2>
+                    <p>Build your own chart (inspired by DHIS2 Data Visualizer).</p>
+                  </div>
+                  <button id="custom-add" class="primary export-ignore">Add visualization</button>
+                </div>
+              </div>
+              <div class="custom-builder">
+                <label>
+                  Chart type
+                  <select id="custom-type">
+                    <option value="bar" selected>Bar</option>
+                    <option value="stacked">Stacked</option>
+                    <option value="donut">Donut</option>
+                  </select>
+                </label>
+                <label>
+                  Metric
+                  <select id="custom-metric">
+                    <option value="success_rate" selected>Success rate</option>
+                    <option value="top_rate">Top performers (Div 1)</option>
+                    <option value="at_risk">At-risk (U / X)</option>
+                    <option value="avg_aggregate">Average aggregate</option>
+                    <option value="division_distribution">Division distribution</option>
+                    <option value="subject_mix">Subject mix</option>
+                  </select>
+                </label>
+                <label>
+                  Group by
+                  <select id="custom-group">
+                    <option value="none" selected>None</option>
+                    <option value="school">School</option>
+                    <option value="parish">Parish</option>
+                    <option value="district">District</option>
+                  </select>
+                </label>
+                <label>
+                  Series
+                  <select id="custom-series">
+                    <option value="none" selected>None</option>
+                    <option value="sex">Sex</option>
+                  </select>
+                </label>
+                <label>
+                  View
+                  <select id="custom-view">
+                    <option value="percent" selected>Percent</option>
+                    <option value="count">Count</option>
+                  </select>
+                </label>
+                <label>
+                  Include absentees (X)
+                  <select id="custom-include-x">
+                    <option value="exclude" selected>Exclude from rates</option>
+                    <option value="include">Include in rates</option>
+                  </select>
+                </label>
+                <label>
+                  Year
+                  <select id="custom-year"></select>
+                </label>
+                <label>
+                  Sex
+                  <select id="custom-sex">
+                    <option value="all" selected>All</option>
+                    <option value="F">Female</option>
+                    <option value="M">Male</option>
+                  </select>
+                </label>
+                <label>
+                  School filter
+                  <input id="custom-school" list="custom-school-list" placeholder="All schools" />
+                  <datalist id="custom-school-list"></datalist>
+                </label>
+                <label>
+                  Top N
+                  <select id="custom-limit">
+                    <option value="0">All</option>
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                  </select>
+                </label>
+                <label>
+                  Sort by
+                  <select id="custom-sort-by">
+                    <option value="value" selected>Value</option>
+                    <option value="name">Name</option>
+                  </select>
+                </label>
+                <label>
+                  Sort order
+                  <select id="custom-sort-dir">
+                    <option value="desc" selected>Descending</option>
+                    <option value="asc">Ascending</option>
+                  </select>
+                </label>
+                <label>
+                  Show data table
+                  <select id="custom-show-table">
+                    <option value="no" selected>No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </label>
+                <label>
+                  Title
+                  <input id="custom-title" placeholder="Auto-generated title" />
+                </label>
+              </div>
+              <div id="custom-hint" class="chart-note"></div>
+            </div>
+
+            <div id="custom-charts" class="custom-grid customise-only"></div>
+
+            <div class="card chart-card wide customise-only">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>School Leaderboard</h2>
+                    <p>Division mix by school, shaded for quick comparison.</p>
+                  </div>
+                  <button id="export-heatmap" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div class="heatmap-wrap">
+                <table id="heatmap-table" class="heatmap-table"></table>
+              </div>
+              <div id="heatmap-legend" class="chart-legend"></div>
+              <div id="heatmap-note" class="chart-note"></div>
+            </div>
+
+            <div class="card chart-card wide customise-only">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Subject Correlation</h2>
+                    <p>Compare subjects by school or org unit (lower is better).</p>
+                  </div>
+                  <button id="export-scatter" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+              <div class="scatter-controls">
+                <label>
+                  X subject
+                  <select id="scatter-x">
+                    <option value="eng" selected>English</option>
+                    <option value="sci">Science</option>
+                    <option value="sst">Social Studies</option>
+                    <option value="math">Mathematics</option>
+                  </select>
+                </label>
+                <label>
+                  Y subject
+                  <select id="scatter-y">
+                    <option value="eng">English</option>
+                    <option value="sci" selected>Science</option>
+                    <option value="sst">Social Studies</option>
+                    <option value="math">Mathematics</option>
+                  </select>
+                </label>
+                <label>
+                  Sex
+                  <select id="scatter-sex">
+                    <option value="all" selected>All</option>
+                    <option value="F">Female</option>
+                    <option value="M">Male</option>
+                  </select>
+                </label>
+                <label>
+                  Group level
+                  <select id="scatter-group">
+                    <option value="school" selected>School</option>
+                    <option value="parish">Parish</option>
+                    <option value="district">District</option>
+                  </select>
+                </label>
+              </div>
+              <div id="scatter-chart" class="scatter-chart"></div>
+              <div id="scatter-legend" class="chart-legend"></div>
+            </div>
+
+            <div class="card chart-card wide customise-only">
+              <div class="chart-header">
+                <div class="chart-header-row">
+                  <div>
+                    <h2>Explore & Customize</h2>
+                    <p>Filter, compare, and reframe the view based on your questions.</p>
+                  </div>
+                  <button id="export-explore" class="ghost export-ignore">Export chart</button>
+                </div>
+              </div>
+
+              <div class="explore-controls">
+                <label>
+                  Year
+                  <select id="filter-year"></select>
+                </label>
+                <label>
+                  School search
+                  <input id="filter-school" list="school-list" placeholder="All schools" />
+                  <datalist id="school-list"></datalist>
+                </label>
+                <label>
+                  Sex
+                  <select id="filter-sex">
+                    <option value="all">All</option>
+                    <option value="F">Female</option>
+                    <option value="M">Male</option>
+                  </select>
+                </label>
+                <label>
+                  Metric
+                  <select id="explore-metric">
+                    <option value="division">Division outcomes</option>
+                    <option value="subject">Subject score distribution</option>
+                    <option value="school">Top schools</option>
+                  </select>
+                </label>
+                <label id="explore-subject-wrap">
+                  Subject
+                  <select id="explore-subject">
+                    <option value="eng">English</option>
+                    <option value="sci">Science</option>
+                    <option value="sst">Social Studies</option>
+                    <option value="math">Mathematics</option>
+                  </select>
+                </label>
+                <label>
+                  View
+                  <select id="explore-view">
+                    <option value="count">Counts</option>
+                    <option value="percent">Percent</option>
+                  </select>
+                </label>
+                <label>
+                  Breakdown
+                  <select id="explore-breakdown">
+                    <option value="none">None</option>
+                    <option value="sex">By sex</option>
+                  </select>
+                </label>
+                <label>
+                  Top N
+                  <select id="explore-limit">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="15">15</option>
+                  </select>
+                </label>
+                <button id="explore-reset" class="ghost">Reset filters</button>
+              </div>
+
+              <div id="explore-chart" class="chart-body"></div>
+              <div id="explore-legend" class="chart-legend"></div>
+              <div id="explore-note" class="chart-note"></div>
             </div>
           </div>
         </section>
