@@ -56,7 +56,23 @@
                   <input type="checkbox" id="remember-session" checked />
                   Remember this job on this device
                 </label>
-                <button id="clear-session" class="ghost">Clear saved job</button>
+              </div>
+              <div class="saved-jobs-controls">
+                <label>
+                  Saved jobs history
+                  <select id="saved-job-select"></select>
+                </label>
+                <label>
+                  Job name
+                  <input id="saved-job-name" placeholder="e.g. Gulu City 2026 draft" />
+                </label>
+                <div class="saved-jobs-actions">
+                  <button id="load-job" class="ghost">Load selected</button>
+                  <button id="save-current-job" class="ghost">Save updates</button>
+                  <button id="save-new-job" class="ghost">Save as new</button>
+                  <button id="delete-job" class="ghost">Delete selected</button>
+                  <button id="clear-session" class="ghost">Clear all saved jobs</button>
+                </div>
               </div>
               <div id="session-status" class="chart-note"></div>
               <div id="conversion-progress" class="progress-bar hidden">
@@ -111,7 +127,7 @@
                 <p>Instant visuals for a quick read, with deeper exploration when you need it.</p>
               </div>
               <div class="title-actions">
-                <button id="toggle-customise" class="ghost export-ignore">Customise</button>
+                <button id="toggle-customise" class="ghost export-ignore" aria-pressed="false">Customise</button>
                 <button id="export-dashboard" class="ghost export-ignore">Export dashboard</button>
                 <button id="dashboard-refresh" class="ghost">Refresh dashboard</button>
                 <button id="go-validation" class="ghost">Back to validation</button>
@@ -172,6 +188,7 @@
               </div>
               <div id="subject-chart" class="chart-body"></div>
               <div id="subject-legend" class="chart-legend"></div>
+              <div id="subject-note" class="chart-note"></div>
             </div>
 
             <div class="card chart-card">
@@ -201,19 +218,6 @@
               <div id="school-chart" class="chart-body"></div>
             </div>
 
-            <div class="card chart-card wide">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Intervention Required</h2>
-                    <p>Learners with Division U or subject Grade 9.</p>
-                  </div>
-                  <button id="export-intervention" class="ghost export-ignore">Export chart</button>
-                </div>
-              </div>
-              <div id="intervention-list" class="intervention-list"></div>
-            </div>
-
             <div class="card chart-card customise-only">
               <div class="chart-header">
                 <div class="chart-header-row">
@@ -226,6 +230,7 @@
               </div>
               <div id="gap-chart" class="chart-body"></div>
               <div id="gap-legend" class="chart-legend"></div>
+              <div id="gap-note" class="chart-note"></div>
             </div>
 
             <div class="card chart-card wide customise-only" id="custom-builder">
@@ -235,10 +240,20 @@
                     <h2>Custom Visualizer</h2>
                     <p>Build your own chart (inspired by DHIS2 Data Visualizer).</p>
                   </div>
-                  <button id="custom-add" class="primary export-ignore">Add visualization</button>
+                  <div class="custom-builder-header-actions">
+                    <button id="custom-reset" class="ghost export-ignore">Reset builder</button>
+                    <button id="custom-add" class="primary export-ignore">Add visualization</button>
+                  </div>
                 </div>
               </div>
               <div class="custom-builder">
+                <label>
+                  Builder mode
+                  <select id="custom-mode">
+                    <option value="quick" selected>Quick</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </label>
                 <label>
                   Chart type
                   <select id="custom-type">
@@ -248,44 +263,59 @@
                   </select>
                 </label>
                 <label>
-                  Metric
+                  Value metric
                   <select id="custom-metric">
-                    <option value="success_rate" selected>Success rate</option>
+                    <option value="count" selected>Learner count</option>
+                    <option value="share">Share of learners (%)</option>
+                    <option value="success_rate">Success rate</option>
                     <option value="top_rate">Top performers (Div 1)</option>
-                    <option value="at_risk">At-risk (U / X)</option>
+                    <option value="at_risk_rate">At-risk rate (U / X)</option>
                     <option value="avg_aggregate">Average aggregate</option>
-                    <option value="division_distribution">Division distribution</option>
-                    <option value="subject_mix">Subject mix</option>
+                    <option value="distinction_rate">Distinction rate (1-2)</option>
+                    <option value="fail_rate">Fail rate (9)</option>
                   </select>
                 </label>
                 <label>
-                  Group by
-                  <select id="custom-group">
-                    <option value="none" selected>None</option>
+                  Rows (dimension)
+                  <select id="custom-category">
+                    <option value="division" selected>Division</option>
+                    <option value="subject">Subject</option>
                     <option value="school">School</option>
                     <option value="parish">Parish</option>
                     <option value="district">District</option>
-                  </select>
-                </label>
-                <label>
-                  Series
-                  <select id="custom-series">
-                    <option value="none" selected>None</option>
+                    <option value="year">Year</option>
                     <option value="sex">Sex</option>
                   </select>
                 </label>
                 <label>
-                  View
+                  Columns (series)
+                  <select id="custom-series">
+                    <option value="none" selected>None</option>
+                    <option value="sex">Sex</option>
+                    <option value="division">Division</option>
+                  </select>
+                </label>
+                <label class="custom-advanced">
+                  View (rates)
                   <select id="custom-view">
                     <option value="percent" selected>Percent</option>
                     <option value="count">Count</option>
                   </select>
                 </label>
-                <label>
+                <label class="custom-advanced">
                   Include absentees (X)
                   <select id="custom-include-x">
                     <option value="exclude" selected>Exclude from rates</option>
                     <option value="include">Include in rates</option>
+                  </select>
+                </label>
+                <label>
+                  Subject for rate
+                  <select id="custom-subject">
+                    <option value="eng" selected>English</option>
+                    <option value="sci">Science</option>
+                    <option value="sst">Social Studies</option>
+                    <option value="math">Mathematics</option>
                   </select>
                 </label>
                 <label>
@@ -300,12 +330,19 @@
                     <option value="M">Male</option>
                   </select>
                 </label>
-                <label>
-                  School filter
-                  <input id="custom-school" list="custom-school-list" placeholder="All schools" />
-                  <datalist id="custom-school-list"></datalist>
+                <label class="custom-advanced">
+                  District filter
+                  <select id="custom-district"></select>
                 </label>
-                <label>
+                <label class="custom-advanced">
+                  Parish filter
+                  <select id="custom-parish"></select>
+                </label>
+                <label class="custom-advanced">
+                  School filter
+                  <select id="custom-school"></select>
+                </label>
+                <label class="custom-advanced">
                   Top N
                   <select id="custom-limit">
                     <option value="0">All</option>
@@ -314,28 +351,28 @@
                     <option value="20">20</option>
                   </select>
                 </label>
-                <label>
+                <label class="custom-advanced">
                   Sort by
                   <select id="custom-sort-by">
                     <option value="value" selected>Value</option>
                     <option value="name">Name</option>
                   </select>
                 </label>
-                <label>
+                <label class="custom-advanced">
                   Sort order
                   <select id="custom-sort-dir">
                     <option value="desc" selected>Descending</option>
                     <option value="asc">Ascending</option>
                   </select>
                 </label>
-                <label>
+                <label class="custom-advanced">
                   Show data table
                   <select id="custom-show-table">
                     <option value="no" selected>No</option>
                     <option value="yes">Yes</option>
                   </select>
                 </label>
-                <label>
+                <label class="custom-advanced">
                   Title
                   <input id="custom-title" placeholder="Auto-generated title" />
                 </label>
@@ -410,6 +447,7 @@
               </div>
               <div id="scatter-chart" class="scatter-chart"></div>
               <div id="scatter-legend" class="chart-legend"></div>
+              <div id="scatter-note" class="chart-note"></div>
             </div>
 
             <div class="card chart-card wide customise-only">

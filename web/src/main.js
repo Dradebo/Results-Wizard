@@ -8,7 +8,8 @@ const state = {
   summary: null,
   buffer: null,
   records: [],
-  customCharts: []
+  customCharts: [],
+  customiseMode: false
 };
 
 const steps = document.querySelectorAll(".step");
@@ -37,7 +38,6 @@ const exportSchoolBtn = document.getElementById("export-school");
 const exportExploreBtn = document.getElementById("export-explore");
 const exportGapBtn = document.getElementById("export-gap");
 const exportParityBtn = document.getElementById("export-parity");
-const exportInterventionBtn = document.getElementById("export-intervention");
 const exportHeatmapBtn = document.getElementById("export-heatmap");
 const exportScatterBtn = document.getElementById("export-scatter");
 const customiseToggle = document.getElementById("toggle-customise");
@@ -50,37 +50,44 @@ const divisionChart = document.getElementById("division-chart");
 const divisionLegend = document.getElementById("division-legend");
 const subjectChart = document.getElementById("subject-chart");
 const subjectLegend = document.getElementById("subject-legend");
+const subjectNote = document.getElementById("subject-note");
 const schoolChart = document.getElementById("school-chart");
 const gapChart = document.getElementById("gap-chart");
 const gapLegend = document.getElementById("gap-legend");
+const gapNote = document.getElementById("gap-note");
 const parityChart = document.getElementById("parity-chart");
 const parityLegend = document.getElementById("parity-legend");
-const interventionList = document.getElementById("intervention-list");
 const heatmapTable = document.getElementById("heatmap-table");
 const heatmapLegend = document.getElementById("heatmap-legend");
 const heatmapNote = document.getElementById("heatmap-note");
 const scatterChart = document.getElementById("scatter-chart");
 const scatterLegend = document.getElementById("scatter-legend");
+const scatterNote = document.getElementById("scatter-note");
 const scatterX = document.getElementById("scatter-x");
 const scatterY = document.getElementById("scatter-y");
 const scatterSex = document.getElementById("scatter-sex");
 const scatterGroup = document.getElementById("scatter-group");
+const customBuilder = document.getElementById("custom-builder");
 const customType = document.getElementById("custom-type");
 const customMetric = document.getElementById("custom-metric");
-const customGroup = document.getElementById("custom-group");
+const customCategory = document.getElementById("custom-category");
 const customSeries = document.getElementById("custom-series");
 const customView = document.getElementById("custom-view");
 const customIncludeX = document.getElementById("custom-include-x");
+const customSubject = document.getElementById("custom-subject");
 const customYear = document.getElementById("custom-year");
 const customSex = document.getElementById("custom-sex");
+const customDistrict = document.getElementById("custom-district");
+const customParish = document.getElementById("custom-parish");
 const customSchool = document.getElementById("custom-school");
-const customSchoolList = document.getElementById("custom-school-list");
 const customLimit = document.getElementById("custom-limit");
 const customSortBy = document.getElementById("custom-sort-by");
 const customSortDir = document.getElementById("custom-sort-dir");
 const customShowTable = document.getElementById("custom-show-table");
 const customTitle = document.getElementById("custom-title");
+const customMode = document.getElementById("custom-mode");
 const customAdd = document.getElementById("custom-add");
+const customReset = document.getElementById("custom-reset");
 const customHint = document.getElementById("custom-hint");
 const customCharts = document.getElementById("custom-charts");
 const filterYear = document.getElementById("filter-year");
@@ -101,6 +108,17 @@ const exploreNote = document.getElementById("explore-note");
 function setStep(step) {
   steps.forEach((btn) => btn.classList.toggle("active", btn.dataset.step === step));
   panels.forEach((panel) => panel.classList.toggle("active", panel.id === step));
+}
+
+function setCustomiseMode(enabled) {
+  state.customiseMode = Boolean(enabled);
+  if (customiseToggle) {
+    customiseToggle.setAttribute("aria-pressed", state.customiseMode ? "true" : "false");
+    customiseToggle.classList.toggle("active", state.customiseMode);
+  }
+  if (customBuilder) {
+    customBuilder.classList.toggle("customise-focus", state.customiseMode);
+  }
 }
 
 steps.forEach((btn) => btn.addEventListener("click", () => setStep(btn.dataset.step)));
@@ -190,6 +208,17 @@ const BUCKET_COLORS = {
   missing: "#e0e0e0"
 };
 
+const CUSTOM_PALETTE = [
+  "#003f5c",
+  "#58508d",
+  "#bc5090",
+  "#ff6361",
+  "#ffa600",
+  "#2f7f5f",
+  "#7f7f7f",
+  "#4d6cfa"
+];
+
 const numberFormatter = new Intl.NumberFormat();
 const percentFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -197,8 +226,13 @@ function toNumber(value) {
   if (value === null || value === undefined) return null;
   const str = String(value).trim();
   if (!str) return null;
-  if (/^-?\\d+(\\.\\d+)?$/.test(str)) return Number(str);
-  return null;
+  const compact = str.replace(/,/g, "");
+  const direct = Number(compact);
+  if (Number.isFinite(direct)) return direct;
+  const matched = compact.match(/-?\d+(\.\d+)?/);
+  if (!matched) return null;
+  const parsed = Number(matched[0]);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function toText(value) {
@@ -266,6 +300,56 @@ function getSuccessDivisions(definition) {
   return definition === "strict" ? ["1", "2"] : ["1", "2", "3", "4"];
 }
 
+function isValidSubjectScore(value) {
+  return Number.isFinite(value) && value >= 1 && value <= 9;
+}
+
+function buildSubjectCoverage(records) {
+  const coverage = {};
+  Object.keys(SUBJECT_LABELS).forEach((subjectKey) => {
+    let valid = 0;
+    records.forEach((row) => {
+      if (isValidSubjectScore(row[subjectKey])) valid += 1;
+    });
+    const total = records.length;
+    coverage[subjectKey] = {
+      valid,
+      total,
+      missing: Math.max(0, total - valid),
+      pct: total ? (valid / total) * 100 : 0
+    };
+  });
+  return coverage;
+}
+
+function hasAnySubjectCoverage(coverage) {
+  return Object.values(coverage || {}).some((item) => (item?.valid || 0) > 0);
+}
+
+function formatCoverageSnippet(coverage, subjectKeys = Object.keys(SUBJECT_LABELS)) {
+  return subjectKeys
+    .filter((key) => coverage[key])
+    .map((key) => `${SUBJECT_LABELS[key]} ${formatPercent(coverage[key].pct)}`)
+    .join(" | ");
+}
+
+function setChartNote(noteEl, message = "", tone = "") {
+  if (!noteEl) return;
+  noteEl.textContent = message;
+  noteEl.classList.remove("warning", "success");
+  if (tone) noteEl.classList.add(tone);
+}
+
+const DEFAULT_CUSTOM_DIMENSIONS = [
+  { value: "division", label: "Division" },
+  { value: "subject", label: "Subject" },
+  { value: "school", label: "School" },
+  { value: "parish", label: "Parish" },
+  { value: "district", label: "District" },
+  { value: "year", label: "Year" },
+  { value: "sex", label: "Sex" }
+];
+
 function bucketScore(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return "missing";
   if (value <= 2) return "distinction";
@@ -307,7 +391,7 @@ async function exportElementAsPng(element, baseName) {
 }
 
 function enableDashboardExports(enabled) {
-  [exportDashboardBtn, exportDivisionBtn, exportSubjectBtn, exportSchoolBtn, exportExploreBtn, exportGapBtn, exportHeatmapBtn, exportScatterBtn, exportParityBtn, exportInterventionBtn]
+  [exportDashboardBtn, exportDivisionBtn, exportSubjectBtn, exportSchoolBtn, exportExploreBtn, exportGapBtn, exportHeatmapBtn, exportScatterBtn, exportParityBtn]
     .forEach((btn) => {
       if (btn) btn.disabled = !enabled;
     });
@@ -462,6 +546,55 @@ function renderDistributionBars(container, rows, options = {}) {
   });
 }
 
+function renderDonutChart(container, rows, options = {}) {
+  if (!container) return;
+  container.innerHTML = "";
+  const finiteRows = rows.filter((row) => Number.isFinite(row.value) && row.value > 0);
+  if (!finiteRows.length) {
+    renderChartEmpty(container, options.empty || "No data available for this view.");
+    return;
+  }
+  const total = finiteRows.reduce((sum, row) => sum + row.value, 0);
+  if (!total) {
+    renderChartEmpty(container, options.empty || "No data available for this view.");
+    return;
+  }
+
+  let cursor = 0;
+  const segments = finiteRows.map((row, index) => {
+    const color = row.color || CUSTOM_PALETTE[index % CUSTOM_PALETTE.length];
+    const pct = (row.value / total) * 100;
+    const start = cursor;
+    const end = cursor + pct;
+    cursor = end;
+    return `${color} ${start}% ${end}%`;
+  });
+
+  const wrap = document.createElement("div");
+  wrap.className = "custom-donut-wrap";
+  const ring = document.createElement("div");
+  ring.className = "custom-donut-ring";
+  ring.style.background = `conic-gradient(${segments.join(", ")})`;
+  const hole = document.createElement("div");
+  hole.className = "custom-donut-hole";
+  hole.textContent = options.totalLabel || formatNumber(total);
+  ring.appendChild(hole);
+  wrap.appendChild(ring);
+  container.appendChild(wrap);
+
+  const legend = document.createElement("div");
+  legend.className = "chart-legend";
+  finiteRows.forEach((row, index) => {
+    const item = document.createElement("span");
+    item.className = "legend-item";
+    const color = row.color || CUSTOM_PALETTE[index % CUSTOM_PALETTE.length];
+    const valueLabel = row.displayValue ?? (options.valueFormatter ? options.valueFormatter(row.value) : formatNumber(row.value));
+    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${row.label} (${valueLabel})`;
+    legend.appendChild(item);
+  });
+  container.appendChild(legend);
+}
+
 function renderDumbbell(container, rows, options = {}) {
   if (!container) return;
   container.innerHTML = "";
@@ -521,7 +654,8 @@ function buildSubjectBuckets(records, subject) {
     missing: 0
   };
   records.forEach((row) => {
-    const bucket = bucketScore(row[subject]);
+    const score = isValidSubjectScore(row[subject]) ? row[subject] : null;
+    const bucket = bucketScore(score);
     counts[bucket] += 1;
   });
   return counts;
@@ -529,8 +663,8 @@ function buildSubjectBuckets(records, subject) {
 
 function buildDistinctionGap(records) {
   return Object.keys(SUBJECT_LABELS).map((subject) => {
-    const femaleScores = records.filter((row) => row.sex === "F" && row[subject] !== null);
-    const maleScores = records.filter((row) => row.sex === "M" && row[subject] !== null);
+    const femaleScores = records.filter((row) => row.sex === "F" && isValidSubjectScore(row[subject]));
+    const maleScores = records.filter((row) => row.sex === "M" && isValidSubjectScore(row[subject]));
     const femaleDistinctions = femaleScores.filter((row) => row[subject] <= 2).length;
     const maleDistinctions = maleScores.filter((row) => row[subject] <= 2).length;
     const femaleRate = femaleScores.length ? (femaleDistinctions / femaleScores.length) * 100 : 0;
@@ -538,7 +672,9 @@ function buildDistinctionGap(records) {
     return {
       subject,
       female: femaleRate,
-      male: maleRate
+      male: maleRate,
+      femaleValid: femaleScores.length,
+      maleValid: maleScores.length
     };
   });
 }
@@ -691,6 +827,20 @@ function renderDivisionChart(records) {
 
 function renderSubjectChart(records) {
   if (!subjectChart) return;
+  const coverage = buildSubjectCoverage(records);
+  const hasCoverage = hasAnySubjectCoverage(coverage);
+  if (!hasCoverage) {
+    renderChartEmpty(subjectChart, "No numeric subject scores were parsed from this dataset.");
+    renderLegend(subjectLegend, [
+      { label: "Distinction (1-2)", color: BUCKET_COLORS.distinction },
+      { label: "Credit (3-6)", color: BUCKET_COLORS.credit },
+      { label: "Pass (7-8)", color: BUCKET_COLORS.pass },
+      { label: "Fail (9)", color: BUCKET_COLORS.fail },
+      { label: "Missing/X", color: BUCKET_COLORS.missing }
+    ]);
+    setChartNote(subjectNote, "Subject fields are unavailable. Re-run conversion with a standard UNEB score table.", "warning");
+    return;
+  }
   const rows = Object.entries(SUBJECT_LABELS).map(([key, label]) => {
     const buckets = buildSubjectBuckets(records, key);
     const total = Object.values(buckets).reduce((sum, val) => sum + val, 0);
@@ -716,6 +866,7 @@ function renderSubjectChart(records) {
     { label: "Fail (9)", color: BUCKET_COLORS.fail },
     { label: "Missing/X", color: BUCKET_COLORS.missing }
   ]);
+  setChartNote(subjectNote, `Coverage (valid grades 1-9): ${formatCoverageSnippet(coverage)}.`, "success");
 }
 
 function renderSchoolChart(records, limit = 8) {
@@ -855,6 +1006,7 @@ function renderScatter(records) {
   scatterChart.innerHTML = "";
   if (!records.length) {
     renderChartEmpty(scatterChart, "No data available for scatter plot.");
+    setChartNote(scatterNote, "Run conversion first to populate correlation data.", "warning");
     return;
   }
   const xKey = scatterX?.value || "eng";
@@ -866,6 +1018,18 @@ function renderScatter(records) {
     if (sex !== "all" && row.sex !== sex) return false;
     return true;
   });
+  const validX = filtered.filter((row) => isValidSubjectScore(row[xKey])).length;
+  const validY = filtered.filter((row) => isValidSubjectScore(row[yKey])).length;
+  if (!validX || !validY) {
+    renderChartEmpty(scatterChart, "No valid subject scores available for the selected axes.");
+    if (scatterLegend) scatterLegend.textContent = "";
+    setChartNote(
+      scatterNote,
+      `Coverage is too low for ${SUBJECT_LABELS[xKey]} or ${SUBJECT_LABELS[yKey]}. Choose another subject or re-run parsing.`,
+      "warning"
+    );
+    return;
+  }
 
   const groupMap = new Map();
   filtered.forEach((row) => {
@@ -876,8 +1040,8 @@ function renderScatter(records) {
       groupMap.set(key, { name: key, valuesX: [], valuesY: [], count: 0 });
     }
     const entry = groupMap.get(key);
-    if (row[xKey] !== null) entry.valuesX.push(row[xKey]);
-    if (row[yKey] !== null) entry.valuesY.push(row[yKey]);
+    if (isValidSubjectScore(row[xKey])) entry.valuesX.push(row[xKey]);
+    if (isValidSubjectScore(row[yKey])) entry.valuesY.push(row[yKey]);
     entry.count += 1;
   });
 
@@ -896,6 +1060,8 @@ function renderScatter(records) {
 
   if (!points.length) {
     renderChartEmpty(scatterChart, "No matching data for the selected filters.");
+    if (scatterLegend) scatterLegend.textContent = "";
+    setChartNote(scatterNote, "Not enough grouped records with valid scores to plot correlation.", "warning");
     return;
   }
 
@@ -1012,20 +1178,42 @@ function renderScatter(records) {
   if (scatterLegend) {
     scatterLegend.textContent = `${points.length} ${groupLevel} point${points.length === 1 ? "" : "s"} - dot size reflects enrollment.`;
   }
+  setChartNote(
+    scatterNote,
+    `Coverage: ${SUBJECT_LABELS[xKey]} ${formatPercent((validX / filtered.length) * 100)}, ${SUBJECT_LABELS[yKey]} ${formatPercent((validY / filtered.length) * 100)}.`,
+    "success"
+  );
 }
 
 function renderGapChart(records) {
   if (!gapChart) return;
-  const rows = buildDistinctionGap(records).map((row) => ({
+  const rawRows = buildDistinctionGap(records).filter((row) => row.femaleValid > 0 || row.maleValid > 0);
+  const rows = rawRows.map((row) => ({
     label: SUBJECT_LABELS[row.subject],
     female: row.female,
     male: row.male
   }));
+  if (!rows.length) {
+    renderChartEmpty(gapChart, "No gender gap data available.");
+    renderLegend(gapLegend, [
+      { label: "Female", color: COLORS.female },
+      { label: "Male", color: COLORS.male }
+    ]);
+    setChartNote(gapNote, "No valid subject scores were found by sex for this dataset.", "warning");
+    return;
+  }
   renderDumbbell(gapChart, rows, { empty: "No gender gap data available." });
   renderLegend(gapLegend, [
     { label: "Female", color: COLORS.female },
     { label: "Male", color: COLORS.male }
   ]);
+  setChartNote(
+    gapNote,
+    rawRows
+      .map((row) => `${SUBJECT_LABELS[row.subject]} F:${row.femaleValid} M:${row.maleValid}`)
+      .join(" | "),
+    "success"
+  );
 }
 
 function renderParityChart(records) {
@@ -1075,199 +1263,382 @@ function renderParityChart(records) {
   ]);
 }
 
-function renderInterventionList(records, limit = 10) {
-  if (!interventionList) return;
-  interventionList.innerHTML = "";
-  if (!records.length) {
-    interventionList.innerHTML = "<div class='chart-empty'>No data available.</div>";
-    return;
-  }
-  const flagged = records
-    .map((row) => {
-      const subjectIssues = [];
-      if (row.eng !== null && row.eng >= 9) subjectIssues.push("ENG 9");
-      if (row.sci !== null && row.sci >= 9) subjectIssues.push("SCI 9");
-      if (row.sst !== null && row.sst >= 9) subjectIssues.push("SST 9");
-      if (row.math !== null && row.math >= 9) subjectIssues.push("MATH 9");
-      const divIssue = row.div === "U" ? "DIV U" : "";
-      const issues = [divIssue, ...subjectIssues].filter(Boolean);
-      return issues.length
-        ? { name: row.learnerName || row.indexNo || "Unknown learner", school: row.schoolName || "", div: row.div || "", issues, aggr: row.aggr }
-        : null;
-    })
-    .filter(Boolean)
-    .sort((a, b) => {
-      if (a.div !== b.div) return a.div === "U" ? -1 : 1;
-      return (b.aggr || 0) - (a.aggr || 0);
-    })
-    .slice(0, limit);
-
-  if (!flagged.length) {
-    interventionList.innerHTML = "<div class='chart-empty'>No learners flagged.</div>";
-    return;
-  }
-
-  const table = document.createElement("table");
-  const thead = document.createElement("thead");
-  const headRow = document.createElement("tr");
-  ["Learner", "School", "Division", "Flags"].forEach((label) => {
-    const th = document.createElement("th");
-    th.textContent = label;
-    headRow.appendChild(th);
+function setSelectOptions(selectEl, values, allLabel = "All", preserveValue = "all") {
+  if (!selectEl) return;
+  const previous = preserveValue ?? selectEl.value ?? "all";
+  selectEl.innerHTML = "";
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = allLabel;
+  selectEl.appendChild(allOption);
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    selectEl.appendChild(option);
   });
-  thead.appendChild(headRow);
-  table.appendChild(thead);
+  selectEl.value = values.includes(previous) ? previous : "all";
+}
 
-  const tbody = document.createElement("tbody");
-  flagged.forEach((row) => {
-    const tr = document.createElement("tr");
-    [row.name, row.school, row.div || "—", row.issues.join(", ")].forEach((cell) => {
-      const td = document.createElement("td");
-      td.textContent = cell;
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
+function setDimensionOptions(selectEl, options, { includeNone = false, noneLabel = "None", preserveValue } = {}) {
+  if (!selectEl) return;
+  const previous = preserveValue ?? selectEl.value ?? (includeNone ? "none" : "");
+  selectEl.innerHTML = "";
+  if (includeNone) {
+    const noneOption = document.createElement("option");
+    noneOption.value = "none";
+    noneOption.textContent = noneLabel;
+    selectEl.appendChild(noneOption);
+  }
+  options.forEach((option) => {
+    const el = document.createElement("option");
+    el.value = option.value;
+    el.textContent = option.label;
+    selectEl.appendChild(el);
   });
-  table.appendChild(tbody);
-  interventionList.appendChild(table);
+  const values = options.map((option) => option.value);
+  if (includeNone && previous === "none") {
+    selectEl.value = "none";
+  } else if (values.includes(previous)) {
+    selectEl.value = previous;
+  } else if (includeNone) {
+    selectEl.value = "none";
+  } else if (values.length) {
+    [selectEl.value] = values;
+  }
+}
+
+function getAvailableSubjects(records) {
+  const coverage = buildSubjectCoverage(records);
+  const withCoverage = Object.keys(SUBJECT_LABELS).filter((key) => (coverage[key]?.valid || 0) > 0);
+  return withCoverage.length ? withCoverage : Object.keys(SUBJECT_LABELS);
+}
+
+function populateSubjectSelectors(records) {
+  const subjectKeys = getAvailableSubjects(records);
+  const options = subjectKeys.map((key) => ({ value: key, label: SUBJECT_LABELS[key] || key }));
+  const prevCustom = customSubject?.value || subjectKeys[0] || "eng";
+  const prevScatterX = scatterX?.value || subjectKeys[0] || "eng";
+  const prevScatterY = scatterY?.value || subjectKeys[1] || subjectKeys[0] || "sci";
+  const prevExplore = exploreSubject?.value || subjectKeys[0] || "eng";
+
+  setDimensionOptions(customSubject, options, { preserveValue: prevCustom });
+  setDimensionOptions(scatterX, options, { preserveValue: prevScatterX });
+  setDimensionOptions(scatterY, options, { preserveValue: prevScatterY });
+  setDimensionOptions(exploreSubject, options, { preserveValue: prevExplore });
+
+  if (scatterX && scatterY && scatterX.value === scatterY.value && subjectKeys.length > 1) {
+    const fallback = subjectKeys.find((key) => key !== scatterX.value);
+    if (fallback) scatterY.value = fallback;
+  }
+}
+
+function getAvailableCustomDimensions(records) {
+  if (!records.length) return DEFAULT_CUSTOM_DIMENSIONS;
+  const coverage = buildSubjectCoverage(records);
+  const hasSubject = hasAnySubjectCoverage(coverage);
+  const years = new Set(records.map((row) => row.year).filter(Boolean));
+  const districts = new Set(records.map((row) => row.district).filter(Boolean));
+  const parishes = new Set(records.map((row) => row.parish).filter(Boolean));
+  const schools = new Set(records.map((row) => row.schoolName).filter(Boolean));
+  const sexes = new Set(records.map((row) => row.sex).filter(Boolean));
+  const divisions = new Set(records.map((row) => row.div).filter(Boolean));
+  return DEFAULT_CUSTOM_DIMENSIONS.filter((dim) => {
+    if (dim.value === "subject") return hasSubject;
+    if (dim.value === "year") return years.size > 0;
+    if (dim.value === "district") return districts.size > 0;
+    if (dim.value === "parish") return parishes.size > 0;
+    if (dim.value === "school") return schools.size > 0;
+    if (dim.value === "sex") return sexes.size > 0;
+    if (dim.value === "division") return divisions.size > 0;
+    return true;
+  });
+}
+
+function populateCustomDimensionSelectors(records) {
+  const options = getAvailableCustomDimensions(records);
+  if (!options.length) return;
+  const previousCategory = customCategory?.value || options[0].value;
+  setDimensionOptions(customCategory, options, { preserveValue: previousCategory });
+  const seriesOptions = options.filter((option) => option.value !== customCategory?.value);
+  const previousSeries = customSeries?.value || "none";
+  setDimensionOptions(customSeries, seriesOptions, { includeNone: true, preserveValue: previousSeries });
+}
+
+function getDimensionLabel(dimension, value) {
+  if (dimension === "division") {
+    if (value === "U") return "U (Ungraded)";
+    if (value === "X") return "X (Missing)";
+    if (value === "Unknown") return "Unknown";
+    return `Div ${value}`;
+  }
+  if (dimension === "sex") {
+    if (value === "F") return "Female";
+    if (value === "M") return "Male";
+    return "Unspecified";
+  }
+  if (dimension === "subject") {
+    return SUBJECT_LABELS[value] || value;
+  }
+  return value || "Unknown";
+}
+
+function getDimensionColor(dimension, value, index = 0) {
+  if (dimension === "division") return DIV_COLORS[value] || DIV_COLORS.Unknown;
+  if (dimension === "sex") {
+    if (value === "F") return COLORS.female;
+    if (value === "M") return COLORS.male;
+    return COLORS.unknown;
+  }
+  if (dimension === "subject") {
+    const subjectColors = {
+      eng: "#003f5c",
+      sci: "#58508d",
+      sst: "#bc5090",
+      math: "#ff6361"
+    };
+    return subjectColors[value] || CUSTOM_PALETTE[index % CUSTOM_PALETTE.length];
+  }
+  return CUSTOM_PALETTE[index % CUSTOM_PALETTE.length];
+}
+
+function metricUsesRateView(metric) {
+  return ["success_rate", "top_rate", "at_risk_rate", "distinction_rate", "fail_rate"].includes(metric);
+}
+
+function isCustomAdvancedMode() {
+  return (customMode?.value || "quick") === "advanced";
+}
+
+function applyCustomQuickDefaults() {
+  if (customView) customView.value = "percent";
+  if (customIncludeX) customIncludeX.value = "exclude";
+  if (customLimit) customLimit.value = "10";
+  if (customSortBy) customSortBy.value = "value";
+  if (customSortDir) customSortDir.value = (customMetric?.value || "count") === "avg_aggregate" ? "asc" : "desc";
+  if (customShowTable) customShowTable.value = "no";
+  if (customTitle) customTitle.value = "";
+  if (customDistrict) customDistrict.value = "all";
+  if (customParish) customParish.value = "all";
+  if (customSchool) customSchool.value = "all";
+}
+
+function normalizeCustomConfig(config) {
+  const normalizedMetric = config?.metric === "at_risk" ? "at_risk_rate" : (config?.metric || "count");
+  const normalizedCategory = config?.category || config?.groupBy || "division";
+  const normalizedSeries = config?.series || "none";
+  const normalizedSchoolMode = config?.schoolMode || (config?.groupBy ? "contains" : "exact");
+  const defaultSortDir = normalizedMetric === "avg_aggregate" ? "asc" : "desc";
+  return {
+    id: config?.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: config?.type || "bar",
+    metric: normalizedMetric,
+    category: normalizedCategory,
+    series: normalizedSeries,
+    view: config?.view || "percent",
+    includeX: config?.includeX || includeX?.value || "exclude",
+    subject: config?.subject || "eng",
+    year: config?.year || "all",
+    sex: config?.sex || "all",
+    district: config?.district || "all",
+    parish: config?.parish || "all",
+    school: config?.school || "all",
+    schoolMode: normalizedSchoolMode,
+    limit: Number(config?.limit || 10),
+    sortBy: config?.sortBy || "value",
+    sortDir: config?.sortDir || defaultSortDir,
+    showTable: config?.showTable || "no",
+    title: config?.title || "",
+    subtitle: config?.subtitle || ""
+  };
+}
+
+function updateCustomLocationFilters(records) {
+  if (!customDistrict || !customParish || !customSchool) return;
+  const year = customYear?.value || "all";
+  const sex = customSex?.value || "all";
+  const base = records.filter((row) => {
+    if (year !== "all" && row.year !== year) return false;
+    if (sex !== "all" && row.sex !== sex) return false;
+    return true;
+  });
+
+  const districtValues = [...new Set(base.map((row) => row.district).filter(Boolean))].sort();
+  const districtPrev = customDistrict.value || "all";
+  setSelectOptions(customDistrict, districtValues, "All districts", districtPrev);
+
+  const district = customDistrict.value || "all";
+  const parishBase = base.filter((row) => district === "all" || row.district === district);
+  const parishValues = [...new Set(parishBase.map((row) => row.parish).filter(Boolean))].sort();
+  const parishPrev = customParish.value || "all";
+  setSelectOptions(customParish, parishValues, "All parishes", parishPrev);
+
+  const parish = customParish.value || "all";
+  const schoolBase = parishBase.filter((row) => parish === "all" || row.parish === parish);
+  const schoolValues = [...new Set(schoolBase.map((row) => row.schoolName).filter(Boolean))].sort();
+  const schoolPrev = customSchool.value || "all";
+  setSelectOptions(customSchool, schoolValues, "All schools", schoolPrev);
 }
 
 function populateCustomFilters(records) {
-  if (!customYear || !customSchoolList) return;
+  if (!customYear) return;
   const years = [...new Set(records.map((row) => row.year).filter(Boolean))].sort();
-  customYear.innerHTML = "";
-  const allOption = document.createElement("option");
-  allOption.value = "all";
-  allOption.textContent = "All years";
-  customYear.appendChild(allOption);
-  years.forEach((year) => {
-    const option = document.createElement("option");
-    option.value = year;
-    option.textContent = year;
-    customYear.appendChild(option);
-  });
-  customSchoolList.innerHTML = "";
-  const schools = [...new Set(records.map((row) => row.schoolName).filter(Boolean))].sort();
-  schools.forEach((name) => {
-    const option = document.createElement("option");
-    option.value = name;
-    customSchoolList.appendChild(option);
-  });
+  const yearPrev = customYear.value || "all";
+  setSelectOptions(customYear, years, "All years", yearPrev);
+  updateCustomLocationFilters(records);
+  populateCustomDimensionSelectors(records);
 }
 
 function filterRecordsForConfig(records, config) {
   return records.filter((row) => {
-    if (config.year && config.year !== "all" && row.year !== config.year) return false;
-    if (config.sex && config.sex !== "all" && row.sex !== config.sex) return false;
-    if (config.school && config.school.trim()) {
-      const query = config.school.trim().toLowerCase();
-      if (!row.schoolName.toLowerCase().includes(query)) return false;
+    if (config.year !== "all" && row.year !== config.year) return false;
+    if (config.sex !== "all" && row.sex !== config.sex) return false;
+    if (config.district !== "all" && row.district !== config.district) return false;
+    if (config.parish !== "all" && row.parish !== config.parish) return false;
+    if (config.school !== "all") {
+      if (config.schoolMode === "contains") {
+        const query = String(config.school).toLowerCase();
+        if (!row.schoolName.toLowerCase().includes(query)) return false;
+      } else if (row.schoolName !== config.school) {
+        return false;
+      }
     }
     return true;
   });
 }
 
-function buildGroupStats(records, groupBy) {
-  const map = new Map();
-  const keyFor = (row) => {
-    if (groupBy === "district") return row.district || "Unknown district";
-    if (groupBy === "parish") return row.parish || "Unknown parish";
-    if (groupBy === "school") return row.schoolName || "Unknown school";
-    return "Overall";
-  };
-  records.forEach((row) => {
-    const key = keyFor(row);
-    if (!map.has(key)) {
-      map.set(key, {
-        name: key,
-        counts: {},
-        total: 0,
-        aggr: [],
-        bySex: {
-          F: { counts: {}, total: 0, aggr: [] },
-          M: { counts: {}, total: 0, aggr: [] },
-          U: { counts: {}, total: 0, aggr: [] }
-        }
-      });
-    }
-    const entry = map.get(key);
+function matchesDimension(row, dimension, value) {
+  if (dimension === "division") {
     const div = DIV_ORDER.includes(row.div) ? row.div : "Unknown";
-    entry.counts[div] = (entry.counts[div] || 0) + 1;
-    entry.total += 1;
-    if (row.aggr !== null) entry.aggr.push(row.aggr);
+    return div === value;
+  }
+  if (dimension === "sex") {
     const sex = row.sex === "F" || row.sex === "M" ? row.sex : "U";
-    entry.bySex[sex].counts[div] = (entry.bySex[sex].counts[div] || 0) + 1;
-    entry.bySex[sex].total += 1;
-    if (row.aggr !== null) entry.bySex[sex].aggr.push(row.aggr);
-  });
-  const rows = [];
-  map.forEach((entry) => {
-    const totalAll = entry.total;
-    const xCount = entry.counts.X || 0;
-    const totalAcademic = Math.max(0, totalAll - xCount);
-    rows.push({
-      name: entry.name,
-      counts: entry.counts,
-      totalAll,
-      totalAcademic,
-      avgAggr: mean(entry.aggr),
-      bySex: {
-        F: {
-          ...entry.bySex.F,
-          totalAll: entry.bySex.F.total,
-          totalAcademic: Math.max(0, entry.bySex.F.total - (entry.bySex.F.counts.X || 0)),
-          avgAggr: mean(entry.bySex.F.aggr)
-        },
-        M: {
-          ...entry.bySex.M,
-          totalAll: entry.bySex.M.total,
-          totalAcademic: Math.max(0, entry.bySex.M.total - (entry.bySex.M.counts.X || 0)),
-          avgAggr: mean(entry.bySex.M.aggr)
-        },
-        U: {
-          ...entry.bySex.U,
-          totalAll: entry.bySex.U.total,
-          totalAcademic: Math.max(0, entry.bySex.U.total - (entry.bySex.U.counts.X || 0)),
-          avgAggr: mean(entry.bySex.U.aggr)
-        }
-      }
-    });
-  });
-  return rows;
+    return sex === value;
+  }
+  if (dimension === "year") return row.year === value;
+  if (dimension === "district") return row.district === value;
+  if (dimension === "parish") return row.parish === value;
+  if (dimension === "school") return row.schoolName === value;
+  return false;
 }
 
-function evaluateMetricValue(entry, config, successDivs, includeAbsentees) {
-  const successCount = successDivs.reduce((sum, div) => sum + (entry.counts[div] || 0), 0);
-  const topCount = entry.counts["1"] || 0;
-  const atRiskCount = (entry.counts.U || 0) + (includeAbsentees ? (entry.counts.X || 0) : 0);
-  const denominator = includeAbsentees ? entry.totalAll : entry.totalAcademic;
+function summarizeRecords(records) {
+  const counts = {};
+  DIV_ORDER.forEach((div) => { counts[div] = 0; });
+  counts.Unknown = 0;
+  const aggr = [];
+  const subjectStats = {
+    eng: { valid: 0, distinction: 0, fail: 0 },
+    sci: { valid: 0, distinction: 0, fail: 0 },
+    sst: { valid: 0, distinction: 0, fail: 0 },
+    math: { valid: 0, distinction: 0, fail: 0 }
+  };
 
-  const successRate = denominator ? (successCount / denominator) * 100 : 0;
-  const topRate = denominator ? (topCount / denominator) * 100 : 0;
-  const atRiskRate = denominator ? (atRiskCount / denominator) * 100 : 0;
+  records.forEach((row) => {
+    const div = DIV_ORDER.includes(row.div) ? row.div : "Unknown";
+    counts[div] = (counts[div] || 0) + 1;
+    if (row.aggr !== null) aggr.push(row.aggr);
+
+    Object.keys(subjectStats).forEach((subjectKey) => {
+      const score = row[subjectKey];
+      if (!isValidSubjectScore(score)) return;
+      subjectStats[subjectKey].valid += 1;
+      if (score <= 2) subjectStats[subjectKey].distinction += 1;
+      if (score >= 9) subjectStats[subjectKey].fail += 1;
+    });
+  });
+
+  const totalAll = records.length;
+  const totalAcademic = Math.max(0, totalAll - (counts.X || 0));
+  return {
+    counts,
+    totalAll,
+    totalAcademic,
+    avgAggr: mean(aggr),
+    subjectStats
+  };
+}
+
+function getDimensionValues(records, dimension) {
+  if (dimension === "subject") return getAvailableSubjects(records);
+  if (dimension === "division") {
+    const counts = getDivisionCounts(records);
+    const ordered = DIV_ORDER.filter((div) => (counts[div] || 0) > 0);
+    if ((counts.Unknown || 0) > 0) ordered.push("Unknown");
+    return ordered;
+  }
+  if (dimension === "sex") {
+    const seen = new Set(records.map((row) => (row.sex === "F" || row.sex === "M" ? row.sex : "U")));
+    return ["F", "M", "U"].filter((value) => seen.has(value));
+  }
+  if (dimension === "year") return [...new Set(records.map((row) => row.year).filter(Boolean))].sort();
+  if (dimension === "district") return [...new Set(records.map((row) => row.district).filter(Boolean))].sort();
+  if (dimension === "parish") return [...new Set(records.map((row) => row.parish).filter(Boolean))].sort();
+  if (dimension === "school") return [...new Set(records.map((row) => row.schoolName).filter(Boolean))].sort();
+  return [];
+}
+
+function evaluateCustomMetric(records, config, context) {
+  const summary = summarizeRecords(records);
+  const includeAbsentees = config.includeX === "include";
+  const denominator = includeAbsentees ? summary.totalAll : summary.totalAcademic;
+
+  if (config.metric === "count") {
+    if (config.category === "subject") {
+      const raw = summary.subjectStats[context.categoryValue]?.valid || 0;
+      return { value: raw, displayValue: formatNumber(raw), raw };
+    }
+    const raw = summary.totalAll;
+    return { value: raw, displayValue: formatNumber(raw), raw };
+  }
+
+  if (config.metric === "share") {
+    const raw = config.category === "subject"
+      ? (summary.subjectStats[context.categoryValue]?.valid || 0)
+      : summary.totalAll;
+    return { value: raw, displayValue: formatNumber(raw), raw };
+  }
 
   if (config.metric === "avg_aggregate") {
+    const avg = summary.avgAggr;
     return {
-      value: entry.avgAggr ?? NaN,
-      displayValue: entry.avgAggr === null || entry.avgAggr === undefined ? "—" : entry.avgAggr.toFixed(1)
+      value: avg ?? NaN,
+      displayValue: avg === null || avg === undefined ? "—" : avg.toFixed(1),
+      raw: Number.isFinite(avg) ? avg : NaN
     };
+  }
+
+  const successCount = context.successDivs.reduce((sum, div) => sum + (summary.counts[div] || 0), 0);
+  const topCount = summary.counts["1"] || 0;
+  const atRiskCount = (summary.counts.U || 0) + (includeAbsentees ? (summary.counts.X || 0) : 0);
+
+  if (config.metric === "success_rate") {
+    const rate = denominator ? (successCount / denominator) * 100 : 0;
+    if (config.view === "count") return { value: successCount, displayValue: formatNumber(successCount), raw: successCount };
+    return { value: rate, displayValue: formatPercent(rate), raw: successCount };
   }
   if (config.metric === "top_rate") {
-    return {
-      value: config.view === "count" ? topCount : topRate,
-      displayValue: config.view === "count" ? formatNumber(topCount) : formatPercent(topRate)
-    };
+    const rate = denominator ? (topCount / denominator) * 100 : 0;
+    if (config.view === "count") return { value: topCount, displayValue: formatNumber(topCount), raw: topCount };
+    return { value: rate, displayValue: formatPercent(rate), raw: topCount };
   }
-  if (config.metric === "at_risk") {
-    return {
-      value: config.view === "count" ? atRiskCount : atRiskRate,
-      displayValue: config.view === "count" ? formatNumber(atRiskCount) : formatPercent(atRiskRate)
-    };
+  if (config.metric === "at_risk_rate") {
+    const rate = denominator ? (atRiskCount / denominator) * 100 : 0;
+    if (config.view === "count") return { value: atRiskCount, displayValue: formatNumber(atRiskCount), raw: atRiskCount };
+    return { value: rate, displayValue: formatPercent(rate), raw: atRiskCount };
   }
-  return {
-    value: config.view === "count" ? successCount : successRate,
-    displayValue: config.view === "count" ? formatNumber(successCount) : formatPercent(successRate)
-  };
+
+  if (config.metric === "distinction_rate" || config.metric === "fail_rate") {
+    const subjectKey = config.category === "subject" ? context.categoryValue : config.subject;
+    const stat = summary.subjectStats[subjectKey] || { distinction: 0, fail: 0 };
+    const count = config.metric === "distinction_rate" ? stat.distinction : stat.fail;
+    const rate = denominator ? (count / denominator) * 100 : 0;
+    if (config.view === "count") return { value: count, displayValue: formatNumber(count), raw: count };
+    return { value: rate, displayValue: formatPercent(rate), raw: count };
+  }
+
+  return { value: NaN, displayValue: "—", raw: NaN };
 }
 
 function sortCustomRows(rows, config) {
@@ -1280,10 +1651,23 @@ function sortCustomRows(rows, config) {
     if (!aFinite && !bFinite) return a.label.localeCompare(b.label);
     if (!aFinite) return 1;
     if (!bFinite) return -1;
-    const av = a.value;
-    const bv = b.value;
-    if (av === bv) return a.label.localeCompare(b.label);
-    return sortDir * (av - bv);
+    if (a.value === b.value) return a.label.localeCompare(b.label);
+    return sortDir * (a.value - b.value);
+  });
+  return rows;
+}
+
+function sortCustomSeriesRows(rows, config) {
+  const sortDir = config.sortDir === "asc" ? 1 : -1;
+  rows.sort((a, b) => {
+    if (config.sortBy === "name") return sortDir * a.label.localeCompare(b.label);
+    const aFinite = Number.isFinite(a.sortValue);
+    const bFinite = Number.isFinite(b.sortValue);
+    if (!aFinite && !bFinite) return a.label.localeCompare(b.label);
+    if (!aFinite) return 1;
+    if (!bFinite) return -1;
+    if (a.sortValue === b.sortValue) return a.label.localeCompare(b.label);
+    return sortDir * (a.sortValue - b.sortValue);
   });
   return rows;
 }
@@ -1323,6 +1707,97 @@ function appendCustomDataTable(container, headers, rowValues) {
   container.appendChild(wrap);
 }
 
+function validateCustomConfig(config) {
+  if (!config) return "Invalid visualization configuration.";
+  if (config.type === "donut" && config.series !== "none") {
+    return "Donut charts do not support a series split.";
+  }
+  if (config.type === "donut" && config.metric === "avg_aggregate") {
+    return "Donut charts do not support average aggregate.";
+  }
+  if (config.type === "stacked" && config.series === "none") {
+    return "Stacked charts require a series split.";
+  }
+  if (config.type === "stacked" && config.metric === "avg_aggregate") {
+    return "Stacked charts do not support average aggregate.";
+  }
+  if (config.category === "division" && !["count", "share"].includes(config.metric)) {
+    return "Division category supports count/share metrics only.";
+  }
+  if (config.category === "subject" && !["count", "share", "distinction_rate", "fail_rate"].includes(config.metric)) {
+    return "Subject category supports count/share/distinction/fail metrics.";
+  }
+  if (config.category === "sex" && config.series === "sex") {
+    return "Series: Sex cannot be used when category is Sex.";
+  }
+  if (config.category === "division" && config.series === "division") {
+    return "Series: Division cannot be used when category is Division.";
+  }
+  if (config.category === "subject" && config.series === "division") {
+    return "Series: Division is not supported for Subject category.";
+  }
+  return "";
+}
+
+function updateCustomBuilderControls() {
+  if (!customMetric || !customView || !customSeries) return;
+  const metric = customMetric.value;
+  const category = customCategory?.value || "division";
+  const advancedMode = isCustomAdvancedMode();
+  document.querySelectorAll("#custom-builder .custom-advanced").forEach((node) => {
+    node.style.display = advancedMode ? "flex" : "none";
+  });
+
+  const showSubjectFilter = ["distinction_rate", "fail_rate"].includes(metric) && category !== "subject";
+  const subjectLabel = customSubject?.closest("label");
+  if (subjectLabel) {
+    subjectLabel.style.display = showSubjectFilter ? "flex" : "none";
+  }
+
+  const viewForcedPercent = metric === "share";
+  const viewDisabled = viewForcedPercent || metric === "count" || metric === "avg_aggregate";
+  if (viewForcedPercent) customView.value = "percent";
+  customView.disabled = viewDisabled;
+  if (customSeries.value === category) customSeries.value = "none";
+
+  const seriesSexOption = customSeries.querySelector('option[value="sex"]');
+  const seriesDivisionOption = customSeries.querySelector('option[value="division"]');
+  if (seriesSexOption) seriesSexOption.disabled = category === "sex";
+  if (seriesDivisionOption) seriesDivisionOption.disabled = category === "division" || category === "subject";
+}
+
+function updateCustomBuilderHint() {
+  updateCustomBuilderControls();
+  const config = normalizeCustomConfig({
+    type: customType?.value || "bar",
+    metric: customMetric?.value || "count",
+    category: customCategory?.value || "division",
+    series: customSeries?.value || "none",
+    view: customView?.value || "percent",
+    includeX: customIncludeX?.value || "exclude",
+    subject: customSubject?.value || "eng",
+    year: customYear?.value || "all",
+    sex: customSex?.value || "all",
+    district: customDistrict?.value || "all",
+    parish: customParish?.value || "all",
+    school: customSchool?.value || "all",
+    limit: Number(customLimit?.value || 10),
+    sortBy: customSortBy?.value || "value",
+    sortDir: customSortDir?.value || "desc",
+    showTable: customShowTable?.value || "no"
+  });
+  const error = validateCustomConfig(config);
+  if (customHint) {
+    if (error) {
+      customHint.textContent = error;
+      return;
+    }
+    customHint.textContent = isCustomAdvancedMode()
+      ? "Advanced mode: configure rows, columns, filters, and denominator behavior."
+      : "Quick mode: pick chart type, metric, and rows. Switch to advanced for more control.";
+  }
+}
+
 function renderCustomCharts(records) {
   if (!customCharts) return;
   customCharts.innerHTML = "";
@@ -1334,7 +1809,10 @@ function renderCustomCharts(records) {
     return;
   }
 
-  state.customCharts.forEach((config) => {
+  const successDivs = getSuccessDivisions(successDefinition?.value || "standard");
+
+  state.customCharts.forEach((rawConfig) => {
+    const config = normalizeCustomConfig(rawConfig);
     const card = document.createElement("div");
     card.className = "card chart-card";
     const header = document.createElement("div");
@@ -1373,224 +1851,196 @@ function renderCustomCharts(records) {
     card.appendChild(body);
     customCharts.appendChild(card);
 
+    const validationError = validateCustomConfig(config);
+    if (validationError) {
+      renderChartEmpty(body, validationError);
+      return;
+    }
+
     const filtered = filterRecordsForConfig(records, config);
     if (!filtered.length) {
       renderChartEmpty(body, "No data for this configuration.");
       return;
     }
 
-    const resolvedConfig = {
-      type: config.type || "bar",
-      metric: config.metric || "success_rate",
-      groupBy: config.groupBy || "none",
-      series: config.series || "none",
-      view: config.view || "percent",
-      limit: Number(config.limit || 10),
-      sortBy: config.sortBy || "value",
-      sortDir: config.sortDir || (config.metric === "avg_aggregate" ? "asc" : "desc"),
-      showTable: config.showTable || "no",
-      includeX: config.includeX || includeX?.value || "exclude"
-    };
-
-    const definition = successDefinition?.value || "standard";
-    const includeAbsentees = resolvedConfig.includeX === "include";
-    const successDivs = getSuccessDivisions(definition);
-
-    if (resolvedConfig.metric === "division_distribution") {
-      if (resolvedConfig.groupBy !== "none") {
-        renderChartEmpty(body, "Division distribution only supports Group by: None.");
+    const filteredCoverage = buildSubjectCoverage(filtered);
+    if ((config.category === "subject" || config.metric === "distinction_rate" || config.metric === "fail_rate") && !hasAnySubjectCoverage(filteredCoverage)) {
+      renderChartEmpty(body, "Subject scores are unavailable for this selection.");
+      return;
+    }
+    if ((config.metric === "distinction_rate" || config.metric === "fail_rate") && config.category !== "subject") {
+      const selectedSubjectCoverage = filteredCoverage[config.subject]?.valid || 0;
+      if (!selectedSubjectCoverage) {
+        renderChartEmpty(body, `No valid ${SUBJECT_LABELS[config.subject] || config.subject} scores for this selection.`);
         return;
       }
-      const counts = getDivisionCounts(filtered);
-      const total = Object.values(counts).reduce((sum, val) => sum + val, 0);
-      const rows = DIV_ORDER.map((div) => {
-        const value = counts[div] || 0;
-        if (!value) return null;
-        const label = div === "U" ? "U (Ungraded)" : div === "X" ? "X (Missing)" : div === "Unknown" ? "Unknown" : `Div ${div}`;
-        return {
-          label,
-          value: resolvedConfig.view === "percent" ? (total ? (value / total) * 100 : 0) : value,
-          displayValue: resolvedConfig.view === "percent" ? formatPercent(total ? (value / total) * 100 : 0) : formatNumber(value),
-          color: DIV_COLORS[div] || DIV_COLORS.Unknown
-        };
-      }).filter(Boolean);
-      const sortedRows = applyCustomLimit(sortCustomRows(rows, resolvedConfig), resolvedConfig.limit);
-      renderBars(body, sortedRows, { valueFormatter: resolvedConfig.view === "percent" ? formatPercent : formatNumber });
-      if (resolvedConfig.showTable === "yes") {
-        appendCustomDataTable(
-          card,
-          ["Division", resolvedConfig.view === "percent" ? "Percent" : "Count"],
-          sortedRows.map((row) => [row.label, row.displayValue])
-        );
-      }
+    }
+
+    const categoryValues = getDimensionValues(filtered, config.category);
+    if (!categoryValues.length) {
+      renderChartEmpty(body, "No categories available for this configuration.");
       return;
     }
 
-    if (resolvedConfig.metric === "subject_mix") {
-      if (resolvedConfig.groupBy !== "none") {
-        renderChartEmpty(body, "Subject mix only supports Group by: None.");
+    const formatter = config.metric === "avg_aggregate"
+      ? formatNumber
+      : (config.metric === "count" || (metricUsesRateView(config.metric) && config.view === "count"))
+        ? formatNumber
+        : formatPercent;
+
+    if (config.series !== "none") {
+      const seriesValues = getDimensionValues(filtered, config.series);
+      if (!seriesValues.length) {
+        renderChartEmpty(body, "No series values available for this configuration.");
         return;
       }
-      const rows = Object.entries(SUBJECT_LABELS).map(([key, label]) => {
-        const buckets = buildSubjectBuckets(filtered, key);
-        const total = Object.values(buckets).reduce((sum, val) => sum + val, 0);
-        const positive = buckets.distinction + buckets.credit;
+
+      const seriesRows = categoryValues.map((categoryValue, categoryIndex) => {
+        const categoryRecords = config.category === "subject"
+          ? filtered
+          : filtered.filter((item) => matchesDimension(item, config.category, categoryValue));
+        const segments = seriesValues.map((seriesValue, seriesIndex) => {
+          const scoped = categoryRecords.filter((item) => matchesDimension(item, config.series, seriesValue));
+          const metric = evaluateCustomMetric(scoped, config, { categoryValue, successDivs });
+          return {
+            key: seriesValue,
+            label: getDimensionLabel(config.series, seriesValue),
+            value: metric.value,
+            raw: metric.raw,
+            displayValue: metric.displayValue,
+            color: getDimensionColor(config.series, seriesValue, seriesIndex)
+          };
+        });
+
         return {
-          label,
-          total,
-          dividerAt: total ? (positive / total) * 100 : 0,
-          segments: [
-            { label: "Distinction (1-2)", value: buckets.distinction, color: BUCKET_COLORS.distinction },
-            { label: "Credit (3-6)", value: buckets.credit, color: BUCKET_COLORS.credit },
-            { label: "Pass (7-8)", value: buckets.pass, color: BUCKET_COLORS.pass },
-            { label: "Fail (9)", value: buckets.fail, color: BUCKET_COLORS.fail },
-            { label: "Missing/X", value: buckets.missing, color: BUCKET_COLORS.missing }
-          ]
+          key: categoryValue,
+          label: getDimensionLabel(config.category, categoryValue),
+          color: getDimensionColor(config.category, categoryValue, categoryIndex),
+          segments
         };
       });
-      renderDistributionBars(body, rows);
-      if (resolvedConfig.showTable === "yes") {
-        appendCustomDataTable(
-          card,
-          ["Subject", "Distinction", "Credit", "Pass", "Fail", "Missing"],
-          rows.map((row) => {
-            const values = row.segments.reduce((acc, segment) => ({ ...acc, [segment.label]: segment.value }), {});
-            return [
-              row.label,
-              formatNumber(values["Distinction (1-2)"] || 0),
-              formatNumber(values["Credit (3-6)"] || 0),
-              formatNumber(values["Pass (7-8)"] || 0),
-              formatNumber(values["Fail (9)"] || 0),
-              formatNumber(values["Missing/X"] || 0)
-            ];
-          })
-        );
+
+      if (config.metric === "share") {
+        const totalRaw = seriesRows.reduce((sum, item) => {
+          return sum + item.segments.reduce((acc, segment) => acc + (Number.isFinite(segment.raw) ? segment.raw : 0), 0);
+        }, 0);
+        seriesRows.forEach((item) => {
+          item.segments.forEach((segment) => {
+            const value = totalRaw ? (segment.raw / totalRaw) * 100 : 0;
+            segment.value = value;
+            segment.displayValue = formatPercent(value);
+          });
+        });
       }
-      return;
-    }
 
-    const groupRows = buildGroupStats(filtered, resolvedConfig.groupBy);
-
-    if (resolvedConfig.series === "sex" && resolvedConfig.type === "stacked") {
-      const stackedRows = groupRows.map((groupEntry) => {
-        const femaleMetric = evaluateMetricValue(groupEntry.bySex.F, resolvedConfig, successDivs, includeAbsentees);
-        const maleMetric = evaluateMetricValue(groupEntry.bySex.M, resolvedConfig, successDivs, includeAbsentees);
-        const overallMetric = evaluateMetricValue(groupEntry, resolvedConfig, successDivs, includeAbsentees);
-        return { label: groupEntry.name, sortValue: overallMetric.value, female: femaleMetric, male: maleMetric };
-      });
-      stackedRows.sort((a, b) => {
-        const sortDir = resolvedConfig.sortDir === "asc" ? 1 : -1;
-        if (resolvedConfig.sortBy === "name") return sortDir * a.label.localeCompare(b.label);
-        const aFinite = Number.isFinite(a.sortValue);
-        const bFinite = Number.isFinite(b.sortValue);
-        if (!aFinite && !bFinite) return a.label.localeCompare(b.label);
-        if (!aFinite) return 1;
-        if (!bFinite) return -1;
-        const av = a.sortValue;
-        const bv = b.sortValue;
-        if (av === bv) return a.label.localeCompare(b.label);
-        return sortDir * (av - bv);
-      });
-      const limitedStackedRows = applyCustomLimit(stackedRows, resolvedConfig.limit);
-      renderStackedBars(
-        body,
-        limitedStackedRows.map((item) => ({
-          label: item.label,
-          total: (Number.isFinite(item.female.value) ? item.female.value : 0) + (Number.isFinite(item.male.value) ? item.male.value : 0),
-          segments: [
-            { label: "Female", value: Number.isFinite(item.female.value) ? item.female.value : 0, color: COLORS.female },
-            { label: "Male", value: Number.isFinite(item.male.value) ? item.male.value : 0, color: COLORS.male }
-          ]
-        })),
-        {
-          valueFormatter: resolvedConfig.metric === "avg_aggregate"
-            ? formatNumber
-            : resolvedConfig.view === "count"
-              ? formatNumber
-              : formatPercent
+      seriesRows.forEach((item) => {
+        item.total = item.segments.reduce((sum, segment) => sum + (Number.isFinite(segment.value) ? segment.value : 0), 0);
+        if (config.metric === "avg_aggregate") {
+          const finite = item.segments.map((segment) => segment.value).filter((value) => Number.isFinite(value));
+          item.sortValue = finite.length ? mean(finite) : NaN;
+        } else {
+          item.sortValue = item.total;
         }
-      );
-      if (resolvedConfig.showTable === "yes") {
+      });
+
+      const sortedSeriesRows = applyCustomLimit(sortCustomSeriesRows(seriesRows, config), config.limit);
+
+      if (config.type === "stacked") {
+        renderStackedBars(
+          body,
+          sortedSeriesRows.map((item) => ({
+            label: item.label,
+            total: item.total,
+            segments: item.segments.map((segment) => ({
+              label: segment.label,
+              value: Number.isFinite(segment.value) ? segment.value : 0,
+              color: segment.color
+            }))
+          })),
+          { valueFormatter: formatter }
+        );
+        if (config.showTable === "yes") {
+          appendCustomDataTable(
+            card,
+            ["Category", ...seriesValues.map((seriesValue) => getDimensionLabel(config.series, seriesValue))],
+            sortedSeriesRows.map((item) => [
+              item.label,
+              ...item.segments.map((segment) => segment.displayValue)
+            ])
+          );
+        }
+        return;
+      }
+
+      const flattened = [];
+      sortedSeriesRows.forEach((item) => {
+        item.segments.forEach((segment) => {
+          flattened.push({
+            label: `${item.label} - ${segment.label}`,
+            value: segment.value,
+            displayValue: segment.displayValue,
+            color: segment.color
+          });
+        });
+      });
+      const sortedFlattened = applyCustomLimit(sortCustomRows(flattened, config), config.limit);
+      renderBars(body, sortedFlattened, { valueFormatter: formatter });
+      if (config.showTable === "yes") {
         appendCustomDataTable(
           card,
-          ["Group", "Female", "Male"],
-          limitedStackedRows.map((item) => [item.label, item.female.displayValue, item.male.displayValue])
+          ["Label", "Value"],
+          sortedFlattened.map((item) => [item.label, item.displayValue])
         );
       }
       return;
     }
 
-    let rows = groupRows.map((groupEntry) => {
-      const metric = evaluateMetricValue(groupEntry, resolvedConfig, successDivs, includeAbsentees);
-      return { label: groupEntry.name, value: metric.value, displayValue: metric.displayValue };
+    const rows = categoryValues.map((categoryValue, index) => {
+      const scoped = config.category === "subject"
+        ? filtered
+        : filtered.filter((item) => matchesDimension(item, config.category, categoryValue));
+      const metric = evaluateCustomMetric(scoped, config, { categoryValue, successDivs });
+      return {
+        key: categoryValue,
+        label: getDimensionLabel(config.category, categoryValue),
+        value: metric.value,
+        raw: metric.raw,
+        displayValue: metric.displayValue,
+        color: getDimensionColor(config.category, categoryValue, index)
+      };
     });
 
-    if (resolvedConfig.series === "sex") {
-      rows = [];
-      groupRows.forEach((groupEntry) => {
-        const femaleMetric = evaluateMetricValue(groupEntry.bySex.F, resolvedConfig, successDivs, includeAbsentees);
-        const maleMetric = evaluateMetricValue(groupEntry.bySex.M, resolvedConfig, successDivs, includeAbsentees);
-        rows.push({
-          label: `${groupEntry.name} - Female`,
-          value: femaleMetric.value,
-          displayValue: femaleMetric.displayValue,
-          color: COLORS.female
-        });
-        rows.push({
-          label: `${groupEntry.name} - Male`,
-          value: maleMetric.value,
-          displayValue: maleMetric.displayValue,
-          color: COLORS.male
-        });
+    if (config.metric === "share") {
+      const totalRaw = rows.reduce((sum, item) => sum + (Number.isFinite(item.raw) ? item.raw : 0), 0);
+      rows.forEach((item) => {
+        const value = totalRaw ? (item.raw / totalRaw) * 100 : 0;
+        item.value = value;
+        item.displayValue = formatPercent(value);
       });
     }
 
-    const sortedRows = applyCustomLimit(sortCustomRows(rows, resolvedConfig), resolvedConfig.limit);
-
-    if (resolvedConfig.type === "donut") {
-      if (resolvedConfig.groupBy !== "none") {
-        renderChartEmpty(body, "Donut charts require Group by: None.");
-        return;
-      }
-      if (resolvedConfig.series !== "none") {
-        renderChartEmpty(body, "Donut charts do not support series split.");
-        return;
-      }
-      if (resolvedConfig.view === "count" || resolvedConfig.metric === "avg_aggregate") {
-        renderChartEmpty(body, "Donut charts require percent-based metrics.");
-        return;
-      }
-      const value = sortedRows[0]?.value ?? 0;
-      const donut = document.createElement("div");
-      donut.className = "kpi-donut";
-      donut.style.setProperty("--kpi-value", Math.min(1, Math.max(0, value / 100)));
-      donut.style.setProperty("--kpi-color", COLORS.accent);
-      body.appendChild(donut);
-      const note = document.createElement("div");
-      note.className = "chart-note";
-      note.textContent = sortedRows[0]?.displayValue ?? "—";
-      body.appendChild(note);
-      if (resolvedConfig.showTable === "yes") {
+    const sortedRows = applyCustomLimit(sortCustomRows(rows, config), config.limit);
+    if (config.type === "donut") {
+      renderDonutChart(body, sortedRows, {
+        valueFormatter: formatter,
+        totalLabel: config.metric === "count" ? formatNumber(sortedRows.reduce((sum, item) => sum + (item.value || 0), 0)) : null
+      });
+      if (config.showTable === "yes") {
         appendCustomDataTable(
           card,
           ["Category", "Value"],
-          sortedRows.slice(0, 1).map((row) => [row.label, row.displayValue])
+          sortedRows.map((item) => [item.label, item.displayValue])
         );
       }
       return;
     }
 
-    const formatter = resolvedConfig.metric === "avg_aggregate"
-      ? formatNumber
-      : resolvedConfig.view === "count"
-        ? formatNumber
-        : formatPercent;
     renderBars(body, sortedRows, { valueFormatter: formatter });
-    if (resolvedConfig.showTable === "yes") {
+    if (config.showTable === "yes") {
       appendCustomDataTable(
         card,
-        ["Label", "Value"],
-        sortedRows.map((row) => [row.label, row.displayValue])
+        ["Category", "Value"],
+        sortedRows.map((item) => [item.label, item.displayValue])
       );
     }
   });
@@ -1642,38 +2092,6 @@ function updateExplorerControls() {
   } else {
     exploreBreakdown.disabled = false;
   }
-}
-
-function validateCustomConfig(config) {
-  if (!config) return "Invalid visualization configuration.";
-  if (config.metric === "division_distribution" && config.groupBy !== "none") {
-    return "Division distribution supports Group by: None only.";
-  }
-  if (config.metric === "subject_mix" && config.groupBy !== "none") {
-    return "Subject mix supports Group by: None only.";
-  }
-  if (config.type === "donut" && config.groupBy !== "none") {
-    return "Donut charts require Group by: None.";
-  }
-  if (config.type === "donut" && config.series !== "none") {
-    return "Donut charts do not support Series split.";
-  }
-  if (config.type === "donut" && (config.view === "count" || config.metric === "avg_aggregate")) {
-    return "Donut charts require percent metrics (not counts/average aggregate).";
-  }
-  return "";
-}
-
-function updateCustomBuilderHint() {
-  const config = {
-    type: customType?.value || "bar",
-    metric: customMetric?.value || "success_rate",
-    groupBy: customGroup?.value || "none",
-    series: customSeries?.value || "none",
-    view: customView?.value || "percent"
-  };
-  const error = validateCustomConfig(config);
-  if (customHint) customHint.textContent = error;
 }
 
 function renderExplorer(records) {
@@ -1810,11 +2228,14 @@ function renderDashboard(records) {
     renderChartEmpty(parityChart, "No gender parity data available.");
     renderHeatmap([]);
     renderChartEmpty(scatterChart, "No data available for scatter plot.");
-    renderInterventionList([]);
     renderChartEmpty(exploreChart, "Run a conversion to explore results.");
     renderCustomCharts([]);
+    setChartNote(subjectNote);
+    setChartNote(gapNote);
+    setChartNote(scatterNote);
     return;
   }
+  populateSubjectSelectors(records);
   enableDashboardExports(true);
   renderDashboardKpis(records);
   renderDivisionChart(records);
@@ -1824,7 +2245,6 @@ function renderDashboard(records) {
   renderGapChart(records);
   renderHeatmap(records);
   renderScatter(records);
-  renderInterventionList(records);
   populateCustomFilters(records);
   populateDashboardFilters(records);
   updateExplorerControls();
@@ -1993,29 +2413,30 @@ if (exportScatterBtn) {
 if (exportParityBtn) {
   exportParityBtn.addEventListener("click", () => exportElementAsPng(parityChart?.closest(".chart-card"), "gender-parity"));
 }
-if (exportInterventionBtn) {
-  exportInterventionBtn.addEventListener("click", () => exportElementAsPng(interventionList?.closest(".chart-card"), "intervention-required"));
-}
 
 if (customAdd) {
   customAdd.addEventListener("click", () => {
-    const config = {
+    const config = normalizeCustomConfig({
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type: customType?.value || "bar",
-      metric: customMetric?.value || "success_rate",
-      groupBy: customGroup?.value || "none",
+      metric: customMetric?.value || "count",
+      category: customCategory?.value || "division",
       series: customSeries?.value || "none",
       view: customView?.value || "percent",
       includeX: customIncludeX?.value || "exclude",
+      subject: customSubject?.value || "eng",
       year: customYear?.value || "all",
       sex: customSex?.value || "all",
-      school: customSchool?.value || "",
+      district: customDistrict?.value || "all",
+      parish: customParish?.value || "all",
+      school: customSchool?.value || "all",
+      schoolMode: "exact",
       limit: Number(customLimit?.value || 10),
       sortBy: customSortBy?.value || "value",
       sortDir: customSortDir?.value || "desc",
       showTable: customShowTable?.value || "no",
       title: (customTitle?.value || "").trim()
-    };
+    });
     const validationError = validateCustomConfig(config);
     if (validationError) {
       if (customHint) customHint.textContent = validationError;
@@ -2023,10 +2444,17 @@ if (customAdd) {
     }
 
     const metricLabel = customMetric?.selectedOptions?.[0]?.textContent || "Metric";
-    const groupLabel = customGroup?.selectedOptions?.[0]?.textContent || "Overall";
-    config.title = config.title || `${metricLabel} (${groupLabel})`;
+    const categoryLabel = customCategory?.selectedOptions?.[0]?.textContent || "Rows";
+    config.title = config.title || `${metricLabel} by ${categoryLabel}`;
     const seriesLabel = customSeries?.selectedOptions?.[0]?.textContent || "None";
-    config.subtitle = `Type: ${config.type} • View: ${config.view} • Series: ${seriesLabel}`;
+    const modeLabel = customMode?.selectedOptions?.[0]?.textContent || "Quick";
+    const filters = [];
+    if (config.year !== "all") filters.push(config.year);
+    if (config.sex !== "all") filters.push(getDimensionLabel("sex", config.sex));
+    if (config.district !== "all") filters.push(config.district);
+    if (config.parish !== "all") filters.push(config.parish);
+    if (config.school !== "all") filters.push(config.school);
+    config.subtitle = `Mode: ${modeLabel} | Type: ${config.type} | View: ${config.view} | Columns: ${seriesLabel}${filters.length ? ` | Filters: ${filters.join(", ")}` : ""}`;
 
     if (customHint) customHint.textContent = "Visualization added below.";
     state.customCharts.unshift(config);
@@ -2034,22 +2462,53 @@ if (customAdd) {
   });
 }
 
-[customType, customMetric, customGroup, customSeries, customView, customIncludeX, customYear, customSex, customSchool, customLimit, customSortBy, customSortDir, customShowTable].forEach((el) => {
+[customMode, customType, customMetric, customCategory, customSeries, customView, customIncludeX, customSubject, customYear, customSex, customDistrict, customParish, customSchool, customLimit, customSortBy, customSortDir, customShowTable].forEach((el) => {
   if (!el) return;
   el.addEventListener("change", () => {
+    if (el === customMode && customMode?.value === "quick") {
+      applyCustomQuickDefaults();
+    }
+    if (el === customCategory) {
+      populateCustomDimensionSelectors(state.records);
+    }
+    if ([customYear, customSex, customDistrict, customParish].includes(el)) {
+      updateCustomLocationFilters(state.records);
+    }
     updateCustomBuilderHint();
   });
 });
 
+if (customReset) {
+  customReset.addEventListener("click", () => {
+    if (customMode) customMode.value = "quick";
+    if (customType) customType.value = "bar";
+    if (customMetric) customMetric.value = "count";
+    populateCustomDimensionSelectors(state.records);
+    if (customCategory && customCategory.options.length) customCategory.value = customCategory.options[0].value;
+    if (customSeries) customSeries.value = "none";
+    populateSubjectSelectors(state.records);
+    if (customYear) customYear.value = "all";
+    if (customSex) customSex.value = "all";
+    applyCustomQuickDefaults();
+    updateCustomLocationFilters(state.records);
+    updateCustomBuilderHint();
+    if (customHint) customHint.textContent = "Builder reset to quick defaults.";
+  });
+}
+
 if (customiseToggle) {
   customiseToggle.addEventListener("click", () => {
-    const target = document.getElementById("custom-builder");
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    const next = !state.customiseMode;
+    setCustomiseMode(next);
+    if (next && customBuilder) {
+      customBuilder.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 }
 
 // Default step
 setStep("ingest");
+setCustomiseMode(false);
 setStatus("Ready.");
 renderFileList([]);
 renderDashboard(state.records);

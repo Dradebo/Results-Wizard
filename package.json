@@ -6,7 +6,10 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --publish=never"
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --publish=never",
+    "test:web": "playwright test -c playwright.web.config.js",
+    "test:desktop": "playwright test -c playwright.desktop.config.js",
+    "test:e2e": "npm run test:web && npm run test:desktop"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
@@ -14,6 +17,7 @@
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "electron": "^40.1.0",
     "electron-builder": "^26.7.0"
   },
@@ -25,7 +29,9 @@
       "**/*"
     ],
     "mac": {
-      "target": ["zip"],
+      "target": [
+        "zip"
+      ],
       "mergeASARs": true,
       "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/@napi-rs/**",
       "sign": false,

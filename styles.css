@@ -198,6 +198,11 @@ button:hover {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
+button:focus-visible {
+  outline: 2px solid #b34700;
+  outline-offset: 2px;
+}
+
 .primary {
   background: var(--accent);
   color: white;
@@ -212,6 +217,20 @@ button:hover {
   background: transparent;
   border: 1px solid var(--edge);
   color: var(--ink);
+}
+
+.ghost[aria-pressed="true"],
+.ghost.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .file-list {
@@ -715,6 +734,28 @@ select {
   margin-top: 10px;
 }
 
+.saved-jobs-controls {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px 12px;
+  margin-top: 10px;
+}
+
+.saved-jobs-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.saved-jobs-actions {
+  grid-column: span 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .checkbox-row {
   display: inline-flex;
   align-items: center;
@@ -900,6 +941,14 @@ select {
   color: var(--muted);
 }
 
+.chart-note.warning {
+  color: #8a4b21;
+}
+
+.chart-note.success {
+  color: #3b5f43;
+}
+
 .chart-empty {
   padding: 16px;
   border: 1px dashed var(--edge);
@@ -942,34 +991,15 @@ select {
   background: #ff7f0e;
 }
 
-.intervention-list {
-  border: 1px solid var(--edge);
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.intervention-list table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.intervention-list th,
-.intervention-list td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #f0ebe4;
-  text-align: left;
-}
-
-.intervention-list th {
-  background: #fff3e8;
-}
-
 .custom-builder {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
+}
+
+.customise-focus {
+  border-color: #d58a57;
+  box-shadow: 0 0 0 2px rgba(211, 84, 0, 0.15), var(--shadow);
 }
 
 .custom-builder label {
@@ -978,6 +1008,17 @@ select {
   gap: 6px;
   font-size: 12px;
   color: var(--muted);
+}
+
+.custom-builder-header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-builder label.custom-advanced {
+  transition: opacity .2s ease;
 }
 
 .custom-grid {
@@ -1024,6 +1065,32 @@ select {
 
 .custom-data-table th {
   background: #fff3e8;
+}
+
+.custom-donut-wrap {
+  display: grid;
+  place-items: center;
+  padding: 8px 0 2px;
+}
+
+.custom-donut-ring {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.custom-donut-hole {
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--edge);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .heatmap-wrap {
@@ -1180,6 +1247,12 @@ select {
     grid-template-columns: 1fr;
   }
   .chart-card.wide {
+    grid-column: span 1;
+  }
+  .saved-jobs-controls {
+    grid-template-columns: 1fr;
+  }
+  .saved-jobs-actions {
     grid-column: span 1;
   }
 }

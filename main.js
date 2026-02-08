@@ -497,15 +497,261 @@ function getSessionFilePath() {
   return path.join(app.getPath("userData"), "ple-import-session.json");
 }
 
+const SESSION_STORE_VERSION = 2;
+
+function createJobId() {
+  return (crypto.randomUUID && crypto.randomUUID())
+    || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeSessionPayload(payload) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  return {
+    version: 1,
+    savedAt: source.savedAt || new Date().toISOString(),
+    keepSession: source.keepSession !== false,
+    pdfs: Array.isArray(source.pdfs) ? source.pdfs : [],
+    output: source.output || null,
+    orgUnits: source.orgUnits || null,
+    workbookPath: source.workbookPath || null,
+    records: Array.isArray(source.records) ? source.records : [],
+    customCharts: Array.isArray(source.customCharts) ? source.customCharts : []
+  };
+}
+
+function hasSessionContent(session) {
+  if (!session || typeof session !== "object") return false;
+  return Boolean(
+    (Array.isArray(session.pdfs) && session.pdfs.length)
+      || session.output
+      || session.workbookPath
+      || (Array.isArray(session.records) && session.records.length)
+      || (Array.isArray(session.customCharts) && session.customCharts.length)
+  );
+}
+
+function safeIso(value, fallback) {
+  if (!value) return fallback;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return parsed.toISOString();
+}
+
+function buildDefaultJobName(session, timestampIso) {
+  const date = safeIso(timestampIso, new Date().toISOString()).slice(0, 16).replace("T", " ");
+  const workbookBase = session?.workbookPath
+    ? path.basename(session.workbookPath, path.extname(session.workbookPath))
+    : "";
+  return workbookBase ? `${workbookBase} (${date})` : `Saved Job ${date}`;
+}
+
+function normalizeJobsStore(rawStore) {
+  const empty = { version: SESSION_STORE_VERSION, currentJobId: null, jobs: [] };
+  if (!rawStore || typeof rawStore !== "object") return empty;
+
+  if (Array.isArray(rawStore.jobs)) {
+    const jobs = rawStore.jobs
+      .map((job) => {
+        const now = new Date().toISOString();
+        const session = normalizeSessionPayload(job?.session || job?.payload || {});
+        const createdAt = safeIso(job?.createdAt, session.savedAt || now);
+        const updatedAt = safeIso(job?.updatedAt, session.savedAt || createdAt);
+        return {
+          id: String(job?.id || createJobId()),
+          name: String(job?.name || buildDefaultJobName(session, updatedAt)),
+          createdAt,
+          updatedAt,
+          session
+        };
+      })
+      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+
+    const currentJobId = jobs.some((job) => job.id === rawStore.currentJobId)
+      ? rawStore.currentJobId
+      : (jobs[0]?.id || null);
+    return { version: SESSION_STORE_VERSION, currentJobId, jobs };
+  }
+
+  const legacySession = normalizeSessionPayload(rawStore);
+  if (!hasSessionContent(legacySession)) return empty;
+  const jobId = createJobId();
+  const timestamp = safeIso(legacySession.savedAt, new Date().toISOString());
+  return {
+    version: SESSION_STORE_VERSION,
+    currentJobId: jobId,
+    jobs: [{
+      id: jobId,
+      name: buildDefaultJobName(legacySession, timestamp),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      session: legacySession
+    }]
+  };
+}
+
+async function readJobsStore() {
+  const sessionPath = getSessionFilePath();
+  if (!fs.existsSync(sessionPath)) {
+    return { version: SESSION_STORE_VERSION, currentJobId: null, jobs: [] };
+  }
+  const raw = await fs.promises.readFile(sessionPath, "utf8");
+  return normalizeJobsStore(JSON.parse(raw));
+}
+
+async function writeJobsStore(store) {
+  const sessionPath = getSessionFilePath();
+  await fs.promises.writeFile(sessionPath, JSON.stringify(store, null, 2));
+}
+
+function summarizeJob(job) {
+  return {
+    id: job.id,
+    name: job.name,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    workbookPath: job.session?.workbookPath || null,
+    records: Array.isArray(job.session?.records) ? job.session.records.length : 0,
+    pdfs: Array.isArray(job.session?.pdfs) ? job.session.pdfs.length : 0
+  };
+}
+
+function summarizeJobsPayload(store) {
+  return {
+    jobs: (store.jobs || []).map(summarizeJob),
+    currentJobId: store.currentJobId || null
+  };
+}
+
+function getCurrentJob(store) {
+  if (!store.jobs.length) return null;
+  return store.jobs.find((job) => job.id === store.currentJobId) || store.jobs[0];
+}
+
+function upsertJob(store, options) {
+  const now = new Date().toISOString();
+  const session = normalizeSessionPayload(options?.session || {});
+  const createNew = Boolean(options?.createNew);
+  const requestedId = options?.jobId ? String(options.jobId) : null;
+  const requestedName = String(options?.name || "").trim();
+
+  let job = null;
+  if (!createNew && requestedId) {
+    job = store.jobs.find((item) => item.id === requestedId) || null;
+  }
+  if (!createNew && !job && store.currentJobId) {
+    job = store.jobs.find((item) => item.id === store.currentJobId) || null;
+  }
+
+  if (!job) {
+    const id = createJobId();
+    const name = requestedName || buildDefaultJobName(session, now);
+    job = {
+      id,
+      name,
+      createdAt: now,
+      updatedAt: now,
+      session
+    };
+    store.jobs.unshift(job);
+  } else {
+    job.name = requestedName || job.name || buildDefaultJobName(session, now);
+    job.updatedAt = now;
+    job.session = session;
+  }
+
+  store.currentJobId = job.id;
+  store.jobs = store.jobs
+    .filter((item) => item && item.id)
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  return job;
+}
+
+ipcMain.handle("list-dashboard-jobs", async () => {
+  try {
+    const store = await readJobsStore();
+    return { ok: true, ...summarizeJobsPayload(store) };
+  } catch (error) {
+    return { ok: false, error: error.message || "Failed to list saved jobs." };
+  }
+});
+
+ipcMain.handle("load-dashboard-job", async (_event, payload) => {
+  try {
+    const jobId = String(payload?.jobId || "");
+    const store = await readJobsStore();
+    const job = store.jobs.find((item) => item.id === jobId);
+    if (!job) return { ok: false, error: "Saved job not found." };
+    store.currentJobId = job.id;
+    await writeJobsStore(store);
+    return {
+      ok: true,
+      session: job.session,
+      job: summarizeJob(job),
+      ...summarizeJobsPayload(store)
+    };
+  } catch (error) {
+    return { ok: false, error: error.message || "Failed to load saved job." };
+  }
+});
+
+ipcMain.handle("save-dashboard-job", async (_event, payload) => {
+  try {
+    const session = payload?.session;
+    if (!session) return { ok: false, error: "Missing session payload." };
+    const store = await readJobsStore();
+    const job = upsertJob(store, {
+      session,
+      jobId: payload?.jobId,
+      name: payload?.name,
+      createNew: payload?.createNew
+    });
+    await writeJobsStore(store);
+    return { ok: true, job: summarizeJob(job), ...summarizeJobsPayload(store) };
+  } catch (error) {
+    return { ok: false, error: error.message || "Failed to save job." };
+  }
+});
+
+ipcMain.handle("delete-dashboard-job", async (_event, payload) => {
+  try {
+    const jobId = String(payload?.jobId || "");
+    if (!jobId) return { ok: false, error: "Missing job id." };
+    const store = await readJobsStore();
+    const before = store.jobs.length;
+    store.jobs = store.jobs.filter((job) => job.id !== jobId);
+    if (store.jobs.length === before) {
+      return { ok: false, error: "Saved job not found." };
+    }
+    if (store.currentJobId === jobId) {
+      store.currentJobId = store.jobs[0]?.id || null;
+    }
+    if (!store.jobs.length) {
+      const sessionPath = getSessionFilePath();
+      if (fs.existsSync(sessionPath)) {
+        await fs.promises.unlink(sessionPath);
+      }
+      return { ok: true, jobs: [], currentJobId: null };
+    }
+    await writeJobsStore(store);
+    return { ok: true, ...summarizeJobsPayload(store) };
+  } catch (error) {
+    return { ok: false, error: error.message || "Failed to delete saved job." };
+  }
+});
+
 ipcMain.handle("load-dashboard-session", async () => {
   try {
-    const sessionPath = getSessionFilePath();
-    if (!fs.existsSync(sessionPath)) {
+    const store = await readJobsStore();
+    const job = getCurrentJob(store);
+    if (!job) {
       return { ok: false, error: "No saved session." };
     }
-    const raw = await fs.promises.readFile(sessionPath, "utf8");
-    const session = JSON.parse(raw);
-    return { ok: true, session };
+    return {
+      ok: true,
+      session: job.session,
+      job: summarizeJob(job),
+      ...summarizeJobsPayload(store)
+    };
   } catch (error) {
     return { ok: false, error: error.message || "Failed to load session." };
   }
@@ -514,9 +760,15 @@ ipcMain.handle("load-dashboard-session", async () => {
 ipcMain.handle("save-dashboard-session", async (_event, payload) => {
   try {
     if (!payload) return { ok: false, error: "Missing session payload." };
-    const sessionPath = getSessionFilePath();
-    await fs.promises.writeFile(sessionPath, JSON.stringify(payload, null, 2));
-    return { ok: true };
+    const store = await readJobsStore();
+    const job = upsertJob(store, {
+      session: payload,
+      jobId: store.currentJobId,
+      name: "",
+      createNew: false
+    });
+    await writeJobsStore(store);
+    return { ok: true, job: summarizeJob(job), ...summarizeJobsPayload(store) };
   } catch (error) {
     return { ok: false, error: error.message || "Failed to save session." };
   }
