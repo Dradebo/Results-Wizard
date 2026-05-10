@@ -9,18 +9,33 @@ const state = {
   leads: JSON.parse(localStorage.getItem("rw-leads") || "[]")
 };
 
+const demoContext = {
+  schoolName: "Kampala View Junior School",
+  activeBatch: "Primary 7 Blue - Term 3, 2026",
+  totalLearners: 89,
+  approved: 84,
+  needsReview: 3,
+  blocked: 2,
+  linksDelivered: 73,
+  linksViewed: 58,
+  correctionsOpen: 5,
+  classesReporting: 8,
+  averagePerformance: 78.5,
+  distinctionRate: 42
+};
+
 const learners = [
-  { name: "Nakato Sarah", initials: "Nakato S.", class: "P7", stream: "A", subjects: "8/8", status: "approved", action: "Preview", method: "WhatsApp", viewed: "Viewed 2h ago" },
-  { name: "Kato Daniel", initials: "Kato D.", class: "P7", stream: "A", subjects: "7/8", status: "needs-review", action: "Fix marks", method: "SMS", viewed: "Not sent" },
-  { name: "Achieng Maria", initials: "Achieng M.", class: "P7", stream: "B", subjects: "8/8", status: "approved", action: "Preview", method: "Email", viewed: "Viewed yesterday" },
-  { name: "Mugisha Paul", initials: "Mugisha P.", class: "P7", stream: "B", subjects: "6/8", status: "error", action: "Resolve", method: "Printed code", viewed: "Blocked" },
-  { name: "Namutebi Joy", initials: "Namutebi J.", class: "P6", stream: "A", subjects: "8/8", status: "published", action: "Open link", method: "WhatsApp", viewed: "Viewed 4h ago" },
-  { name: "Okello Brian", initials: "Okello B.", class: "S2", stream: "East", subjects: "10/10", status: "viewed", action: "Resend", method: "SMS", viewed: "Viewed today" },
-  { name: "Namugenyi Ruth", initials: "Namugenyi R.", class: "S1", stream: "North", subjects: "9/10", status: "needs-review", action: "Add comment", method: "Email", viewed: "Draft" }
+  { name: "Nakato Sarah", initials: "Nakato S.", class: "P7", stream: "A", subjects: "8/8", status: "approved", action: "Preview", method: "WhatsApp", viewed: "Viewed 2h ago", rowNote: "Sample row from the active cohort", linkStatus: "sent" },
+  { name: "Kato Daniel", initials: "Kato D.", class: "P7", stream: "A", subjects: "7/8", status: "needs-review", action: "Resolve marks", method: "SMS", viewed: "Hold until marks are complete", rowNote: "Sample row from the active cohort", linkStatus: "needs-review" },
+  { name: "Achieng Maria", initials: "Achieng M.", class: "P7", stream: "B", subjects: "8/8", status: "approved", action: "Preview", method: "Email", viewed: "Viewed yesterday", rowNote: "Sample row from the active cohort", linkStatus: "viewed" },
+  { name: "Mugisha Paul", initials: "Mugisha P.", class: "P7", stream: "B", subjects: "6/8", status: "error", action: "Resolve blocker", method: "Printed code", viewed: "Blocked by missing English mark", rowNote: "Sample row from the active cohort", linkStatus: "blocked" },
+  { name: "Namutebi Joy", initials: "Namutebi J.", class: "P6", stream: "A", subjects: "8/8", status: "approved", action: "Preview", method: "WhatsApp", viewed: "Sent 4h ago", rowNote: "Sample row from the active cohort", linkStatus: "sent" },
+  { name: "Okello Brian", initials: "Okello B.", class: "S2", stream: "East", subjects: "10/10", status: "approved", action: "Preview", method: "SMS", viewed: "Viewed today", rowNote: "Sample row from the active cohort", linkStatus: "viewed" },
+  { name: "Namugenyi Ruth", initials: "Namugenyi R.", class: "S1", stream: "North", subjects: "9/10", status: "needs-review", action: "Add comment", method: "Email", viewed: "Waiting for class teacher comment", rowNote: "Sample row from the active cohort", linkStatus: "needs-review" }
 ];
 
 const batches = [
-  { title: "Primary 7 Term 1 Reports", meta: "89 learners - Parent links published", status: "published" },
+  { title: "Primary 7 Blue - Term 3 Results", meta: "89 learners - 84 approved, 5 still need action", status: "needs-review" },
   { title: "Senior 2 CBC Midterm", meta: "142 learners - Descriptor review in progress", status: "needs-review" },
   { title: "PLE Mock Results", meta: "76 learners - Ready for parent preview", status: "approved" },
   { title: "Primary 5 End of Term", meta: "118 learners - Missing 2 class comments", status: "error" }
@@ -37,7 +52,7 @@ const teacherSubmissions = [
 const missingMarks = [
   { learner: "Kato Daniel", className: "P7 Blue", issue: "Mathematics mark missing", owner: "Mr. Ssemakula" },
   { learner: "Mugisha Paul", className: "P7 Blue", issue: "English mark missing", owner: "Ms. Atim" },
-  { learner: "Namutebi Joy", className: "P7 Blue", issue: "Science comment missing", owner: "Mr. Okello" },
+  { learner: "Namugenyi Ruth", className: "P7 Blue", issue: "Science comment missing", owner: "Mr. Okello" },
   { learner: "Achieng Maria", className: "P7 Blue", issue: "Attendance not filled", owner: "Class Teacher" }
 ];
 
@@ -135,10 +150,76 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 function statusLabel(status) {
+  const labels = {
+    "needs-review": "Needs review",
+    blocked: "Blocked",
+    sent: "Sent",
+    viewed: "Viewed",
+    approved: "Approved",
+    error: "Error"
+  };
+  if (labels[status]) return labels[status];
   return status
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function updateTopbarActions(view = document.body.dataset.view || "dashboard") {
+  const secondary = document.querySelector("[data-role='topbar-secondary']");
+  const primary = document.querySelector("[data-role='topbar-primary']");
+  if (!secondary || !primary) return;
+
+  const actions = {
+    dashboard: {
+      secondaryLabel: "View school analytics",
+      secondaryTarget: "analytics",
+      primaryLabel: "New results batch",
+      primaryTarget: "batch"
+    },
+    batch: {
+      secondaryLabel: "Return to dashboard",
+      secondaryTarget: "dashboard",
+      primaryLabel: "Open review queue",
+      primaryTarget: "review"
+    },
+    review: {
+      secondaryLabel: "Open parent preview",
+      secondaryTarget: "parent",
+      primaryLabel: "Publish link workflow",
+      primaryTarget: "links"
+    },
+    parent: {
+      secondaryLabel: "Back to review",
+      secondaryTarget: "review",
+      primaryLabel: "Open link workflow",
+      primaryTarget: "links"
+    },
+    links: {
+      secondaryLabel: "Return to review",
+      secondaryTarget: "review",
+      primaryLabel: "Request school demo",
+      primaryTarget: "subscription"
+    },
+    analytics: {
+      secondaryLabel: "View active batch",
+      secondaryTarget: "dashboard",
+      primaryLabel: "Request analytics plan",
+      primaryTarget: "subscription"
+    },
+    subscription: {
+      secondaryLabel: "See active batch",
+      secondaryTarget: "dashboard",
+      primaryLabel: "New results batch",
+      primaryTarget: "batch"
+    }
+  };
+
+  const current = actions[view] || actions.dashboard;
+  secondary.textContent = current.secondaryLabel;
+  secondary.dataset.viewTrigger = current.secondaryTarget;
+  primary.textContent = current.primaryLabel;
+  primary.dataset.viewTrigger = current.primaryTarget;
 }
 
 function setView(view) {
@@ -147,6 +228,7 @@ function setView(view) {
   document.body.dataset.view = view;
   const target = document.getElementById(view);
   if ($("#page-title") && target?.dataset.title) $("#page-title").textContent = target.dataset.title;
+  updateTopbarActions(view);
 }
 
 function renderBatches() {
@@ -219,7 +301,7 @@ function renderReviewTable() {
 
   body.innerHTML = rows.map((learner) => `
     <tr>
-      <td><strong>${learner.name}</strong><br><span class="batch-meta">Fictional demo learner</span></td>
+      <td><strong>${learner.name}</strong><br><span class="batch-meta">${learner.rowNote}</span></td>
       <td>${learner.class}</td>
       <td>${learner.stream}</td>
       <td>${learner.subjects}</td>
@@ -234,13 +316,13 @@ function renderLinksTable() {
   const query = ($("#links-search")?.value || "").toLowerCase();
   const filter = $("#links-status")?.value || "all";
   if (!body) return;
-  body.innerHTML = learners.filter((learner, index) => {
-    const status = learner.status === "approved" ? "sent" : learner.status;
+  body.innerHTML = learners.filter((learner) => {
+    const status = learner.linkStatus || (learner.status === "approved" ? "sent" : learner.status);
     const matchesQuery = learner.name.toLowerCase().includes(query) || `${learner.class} ${learner.stream}`.toLowerCase().includes(query);
     const matchesFilter = filter === "all" || status === filter;
     return matchesQuery && matchesFilter;
   }).map((learner, index) => {
-    const status = learner.status === "approved" ? "sent" : learner.status;
+    const status = learner.linkStatus || (learner.status === "approved" ? "sent" : learner.status);
     const accessCode = `RW-${learner.class}-${learner.stream}`.replace(/\s+/g, "-").toUpperCase() + `-${String(index + 1).padStart(3, "0")}`;
     return `
       <tr>
@@ -320,10 +402,10 @@ function renderBarChart(selector, rows) {
 function renderSummary(summary = state.summary) {
   const target = $("#summary");
   if (!target) return;
-  const readyLinks = learners.filter((learner) => ["approved", "published", "viewed"].includes(learner.status)).length;
+  const readyLinks = demoContext.approved;
   const cards = [
-    ["Learners", summary?.learners ?? 89],
-    ["QA rows", summary?.qaRows ?? 3],
+    ["Learners", summary?.learners ?? demoContext.totalLearners],
+    ["QA rows", summary?.qaRows ?? demoContext.needsReview + demoContext.blocked],
     ["Unmatched", summary?.unmatchedSchools ?? 0],
     ["Ready links", summary?.readyLinks ?? readyLinks]
   ];
@@ -508,7 +590,8 @@ function bulkApproveReady() {
     if (learner.status === "needs-review") {
       learner.status = "approved";
       learner.action = "Preview";
-      learner.viewed = "Ready to send";
+      learner.viewed = "Queued for link delivery";
+      learner.linkStatus = "sent";
     }
   });
   renderReviewTable();
@@ -586,6 +669,7 @@ function bindEvents() {
 function init() {
   bindEvents();
   document.body.dataset.view = "dashboard";
+  updateTopbarActions("dashboard");
   renderBatches();
   renderTeacherSubmissions();
   renderMissingMarks();

@@ -48,8 +48,8 @@
             <h1 id="page-title">Term 3, 2026 Dashboard</h1>
           </div>
           <div class="topbar-actions">
-            <button class="ghost" data-view-trigger="analytics">Export analytics snapshot</button>
-            <button class="primary" data-view-trigger="batch">New results batch</button>
+            <button class="ghost" data-role="topbar-secondary" data-view-trigger="analytics">View school analytics</button>
+            <button class="primary" data-role="topbar-primary" data-view-trigger="batch">New results batch</button>
           </div>
         </header>
 
@@ -73,9 +73,9 @@
 
           <div class="metric-strip" aria-label="Term summary">
             <article class="metric-card"><span>Classes reporting</span><strong>8</strong><small>Primary and lower secondary</small></article>
-            <article class="metric-card"><span>Reports ready</span><strong>84</strong><small>Filled and checked</small></article>
-            <article class="metric-card"><span>Parent links sent</span><strong>450 <small>/ 480</small></strong><small>93% delivery readiness</small></article>
-            <article class="metric-card warning"><span>Action required</span><strong>12</strong><small>Resolve before publishing</small></article>
+            <article class="metric-card"><span>Reports ready</span><strong>84</strong><small>Approved for parent delivery</small></article>
+            <article class="metric-card"><span>Links delivered</span><strong>73 <small>/ 84</small></strong><small>58 parents already opened results</small></article>
+            <article class="metric-card warning"><span>Action required</span><strong>5</strong><small>3 need review, 2 are blocked</small></article>
           </div>
 
           <div class="dashboard-grid">
@@ -84,7 +84,7 @@
                 <div>
                   <p class="eyebrow">Active batch</p>
                   <h3>Term report progress</h3>
-                  <p>P7 reports are nearly ready. Follow up with teachers, fill the report slips, check the parent view, then send links.</p>
+                  <p>P7 Blue is nearly ready. Follow up with teachers, clear the flagged rows, confirm the parent view, then release official links.</p>
                 </div>
                 <button class="ghost" data-view-trigger="analytics">View full report</button>
               </div>
@@ -169,8 +169,8 @@
 
             <div class="source-type-grid" aria-label="Supported demo source types">
               <article class="source-type active"><strong>CSV teacher marksheet</strong><span>Live pilot path: one subject row per learner, grouped into reviewable reports.</span></article>
-              <article class="source-type"><strong>Spreadsheet / marksheet</strong><span>Next path for term reports and teacher submissions.</span></article>
-              <article class="source-type"><strong>Pasted table</strong><span>Future path for schools starting from copied Excel or Google Sheets data.</span></article>
+              <article class="source-type"><strong>Spreadsheet / marksheet</strong><span>Coming next: direct term-report spreadsheets and teacher submission books.</span></article>
+              <article class="source-type"><strong>Pasted table</strong><span>Coming next: copied Excel or Google Sheets tables for fast intake.</span></article>
               <article class="source-type"><strong>PLE PDF adapter</strong><span>Existing parser remains one adapter, not the whole product.</span></article>
             </div>
 
@@ -277,9 +277,9 @@
                 <div id="pdf-list" class="file-list empty">No files selected.</div>
                 <div id="status" class="status">Ready to check a marks file.</div>
                 <div class="plain-steps" aria-label="How marks are processed">
-                  <div><strong>Read</strong><span>The file is opened and matched to learners, subjects, marks, grades, comments, and attendance.</span></div>
-                  <div><strong>Check</strong><span>Missing marks, missing comments, unusual scores, and pending teachers are shown for school review.</span></div>
-                  <div><strong>Prepare</strong><span>Approved entries are placed into the selected report format before parent links are sent.</span></div>
+                <div><strong>Read</strong><span>The uploaded file is matched to learners, subjects, marks, grades, comments, and attendance.</span></div>
+                <div><strong>Check</strong><span>Missing marks, missing comments, unusual scores, and pending teachers are surfaced for operator review.</span></div>
+                <div><strong>Prepare</strong><span>Approved entries move into the parent-ready workbook and link workflow after review.</span></div>
                 </div>
                 <div id="conversion-progress" class="progress-bar hidden">
                   <div id="conversion-progress-fill" class="progress-fill"></div>
@@ -338,7 +338,7 @@
 
         <section id="review" class="view" data-title="Review Results">
           <div class="metric-grid compact">
-            <article class="metric-card"><span>Total learners</span><strong>89</strong><small>P7A and P7B</small></article>
+            <article class="metric-card"><span>Total learners</span><strong>89</strong><small>Primary 7 Blue active batch</small></article>
             <article class="metric-card"><span>Approved</span><strong>84</strong><small>Ready for parent preview</small></article>
             <article class="metric-card warning"><span>Needs review</span><strong>3</strong><small>Teacher action required</small></article>
             <article class="metric-card danger"><span>Errors</span><strong>2</strong><small>Cannot publish yet</small></article>
@@ -361,7 +361,7 @@
                   <option value="needs-review">Needs review</option>
                   <option value="error">Error</option>
                 </select>
-                <button id="bulk-approve" class="primary" type="button">Bulk approve ready</button>
+                <button id="bulk-approve" class="primary" type="button">Approve all clean rows (demo)</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -465,7 +465,7 @@
                 <div class="school-header">
                   <div class="school-mark">KV</div>
                   <div>
-                    <strong>Hillside Primary School</strong>
+                    <strong>Kampala View Junior School</strong>
                     <span>Term 3, 2026 - Published 09 May</span>
                   </div>
                 </div>
@@ -512,7 +512,7 @@
 
         <section id="links" class="view" data-title="Parent Links">
           <div class="metric-grid compact">
-            <article class="metric-card"><span>Ready to send</span><strong>84</strong><small>Approved reports</small></article>
+            <article class="metric-card"><span>Ready to send</span><strong>84</strong><small>Approved reports in the active batch</small></article>
             <article class="metric-card"><span>Delivered</span><strong>73</strong><small>Across SMS, WhatsApp, email, and print</small></article>
             <article class="metric-card warning"><span>Corrections open</span><strong>5</strong><small>Parents can still request changes</small></article>
             <article class="metric-card"><span>Viewed</span><strong>58</strong><small>Tracked after publishing</small></article>
@@ -522,9 +522,9 @@
             <div class="panel-heading">
               <div>
                 <h3>Secure parent links</h3>
-                <p>Send, track, revoke, regenerate, or print access codes after approval.</p>
+                <p>Send, track, revoke, regenerate, or print access codes after approval. This queue uses sample rows from the active 89-learner cohort.</p>
               </div>
-              <button class="primary">Send selected links</button>
+              <button class="primary">Open delivery queue</button>
             </div>
             <div class="toolbar">
               <input id="links-search" placeholder="Search learners or classes" />
@@ -532,16 +532,15 @@
                 <option value="all">All link statuses</option>
                 <option value="sent">Sent</option>
                 <option value="needs-review">Needs review</option>
-                <option value="error">Error</option>
-                <option value="published">Published</option>
+                <option value="blocked">Blocked</option>
                 <option value="viewed">Viewed</option>
               </select>
             </div>
             <div class="link-methods">
-              <button>SMS</button>
-              <button>WhatsApp</button>
-              <button>Email</button>
-              <button>Printed code</button>
+              <button>Default: SMS</button>
+              <button>Default: WhatsApp</button>
+              <button>Default: Email</button>
+              <button>Default: Printed code</button>
             </div>
             <div class="table-wrap">
               <table>
@@ -552,7 +551,7 @@
                     <th>Status</th>
                     <th>Method</th>
                     <th>Access code</th>
-                    <th>Viewed</th>
+                    <th>Delivery state</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -566,7 +565,7 @@
           <div class="metric-grid compact">
             <article class="metric-card"><span>Average performance</span><strong>78.5%</strong><small>+3.2% from last term</small></article>
             <article class="metric-card"><span>Distinction rate</span><strong>42%</strong><small>Aggregate only</small></article>
-            <article class="metric-card"><span>Total learners</span><strong>847</strong><small>Across active classes</small></article>
+            <article class="metric-card"><span>Total learners</span><strong>89</strong><small>From Primary 7 Blue active batch</small></article>
             <article class="metric-card"><span>Public snapshot</span><strong>Ready</strong><small>No learner names included</small></article>
           </div>
 
@@ -628,7 +627,7 @@
               <div class="panel-heading compact-heading">
                 <div>
                   <h3>Custom analytics pack</h3>
-                  <p>Subscription reports can be tailored for the school's questions.</p>
+                  <p>Subscription reports can be tailored once a school wants more than the core pilot workflow.</p>
                 </div>
               </div>
               <div class="custom-builder">
@@ -658,7 +657,7 @@
           </div>
         </section>
 
-        <section id="subscription" class="view" data-title="Subscription And Demo Requests">
+        <section id="subscription" class="view" data-title="School Demo And Pilot Plans">
           <article class="panel lead-journey-panel">
             <div>
               <p class="eyebrow">Assisted pilot sequence</p>
@@ -677,7 +676,7 @@
               <span class="badge">Basic</span>
               <h3>Term Portal</h3>
               <strong>UGX 500,000 <small>/ term</small></strong>
-              <p>For a school that wants clean term reports and secure parent result links.</p>
+              <p>For a school that wants an operator-assisted pilot with clean term reports and secure parent result links.</p>
               <ul>
                 <li>One active term</li>
                 <li>Teacher marks template</li>
@@ -691,7 +690,7 @@
               <span class="badge">Most useful</span>
               <h3>Analytics Plus</h3>
               <strong>UGX 1,000,000 <small>/ term</small></strong>
-              <p>For schools that want parent links plus leadership analytics from the same results.</p>
+              <p>For schools that want the assisted pilot plus leadership analytics from the same reviewed results batch.</p>
               <ul>
                 <li>Everything in Term Portal</li>
                 <li>Class and stream comparisons</li>
@@ -705,7 +704,7 @@
               <span class="badge">Premium</span>
               <h3>Custom School Analytics</h3>
               <strong>UGX 1,500,000 <small>/ term</small></strong>
-              <p>For schools that want a tailored analytics package and more hands-on support.</p>
+              <p>For schools that want tailored analytics, custom report layouts, and more hands-on rollout support.</p>
               <ul>
                 <li>Everything in Analytics Plus</li>
                 <li>Custom report-card format</li>
@@ -718,8 +717,8 @@
 
           <article class="panel lead-panel">
             <div>
-              <h3>Interested in using Results Wizard?</h3>
-              <p>Share your school details and what you want help with. We will follow up with a short walkthrough and pilot options.</p>
+              <h3>Request a school walkthrough</h3>
+              <p>Share your school details, learner volume, and results format. We will follow up with pilot steps, turnaround expectations, and the best-fit plan.</p>
             </div>
             <form id="lead-form" class="lead-form">
               <input name="school" placeholder="School name" required />

@@ -6,7 +6,7 @@ test("portal demo shell and parent result workflow load", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "Term 3, 2026 Dashboard" })).toBeVisible();
-  await expect(page.getByText("Active batch")).toBeVisible();
+  await expect(page.getByText("Active batch", { exact: true })).toBeVisible();
   await expect(page.getByText("Term report progress")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Items to fix" })).toBeVisible();
   await expect(page.getByRole("button", { name: "New results batch" }).first()).toBeVisible();
@@ -28,7 +28,7 @@ test("portal demo shell and parent result workflow load", async ({ page }) => {
   await expect(page.locator("#template-notes").getByText("CBC competency report")).toBeVisible();
 
   await page.getByRole("button", { name: "Subscription" }).click();
-  await expect(page.getByRole("heading", { name: "Subscription And Demo Requests" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "School Demo And Pilot Plans" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Analytics Plus" })).toBeVisible();
   await expect(page.locator(".price-card").filter({ hasText: "Term Portal" }).getByText("UGX 500,000")).toBeVisible();
   await expect(page.locator(".price-card").filter({ hasText: "Custom School Analytics" }).getByText("UGX 1,500,000")).toBeVisible();
