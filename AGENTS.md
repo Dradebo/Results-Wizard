@@ -31,7 +31,7 @@ PLE is only the first ingestion adapter and sample workflow. Do not center new U
 - Current package/app names still say `PLE Import Prep`; rename/positioning work is pending.
 - Main parser files are PLE-shaped: `ple_pdf_to_excel.js` and `web/src/pdfToWorkbook.js`.
 - Useful reusable pieces: workbook preview, validation summary, dashboards, custom visualizer, saved jobs, exports, tests, and the synthetic fixture under `tests/fixtures`.
-- `mapping_profiles.json` contains credential-bearing config; quarantine/remove before public demos, packaging, or repo sharing.
+- Legacy repo-level `mapping_profiles.json` has been removed. Saved desktop mapping profiles now belong in Electron userData at runtime, not in git.
 
 ## Relevant Docs
 

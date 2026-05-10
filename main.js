@@ -4,7 +4,6 @@ const path = require("path");
 const fs = require("fs");
 const ExcelJS = require("exceljs");
 const { convertPdfsToExcel } = require("./ple_pdf_to_excel");
-const profilesPath = path.join(__dirname, "mapping_profiles.json");
 const crypto = require("crypto");
 
 const APP_TITLE = "PLE Import Prep";
@@ -207,8 +206,12 @@ function createWindow() {
   mainWindow = win;
 }
 
+function getProfilesPath() {
+  return path.join(app.getPath("userData"), "mapping_profiles.json");
+}
+
 function readProfiles() {
-  if (!fs.existsSync(profilesPath)) return {};
+  const profilesPath = getProfilesPath();
   try {
     return JSON.parse(fs.readFileSync(profilesPath, "utf8"));
   } catch {
@@ -217,6 +220,7 @@ function readProfiles() {
 }
 
 function writeProfiles(profiles) {
+  const profilesPath = getProfilesPath();
   fs.writeFileSync(profilesPath, JSON.stringify(profiles, null, 2));
 }
 
