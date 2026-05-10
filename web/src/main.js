@@ -207,12 +207,14 @@ function renderReviewTable() {
   const body = $("#review-table-body");
   const query = ($("#review-search")?.value || "").toLowerCase();
   const filter = $("#review-status")?.value || "all";
+  const classFilter = $("#review-class")?.value || "all";
   if (!body) return;
 
   const rows = learners.filter((learner) => {
-    const matchesQuery = learner.name.toLowerCase().includes(query) || learner.class.toLowerCase().includes(query);
+    const matchesQuery = learner.name.toLowerCase().includes(query) || `${learner.class} ${learner.stream}`.toLowerCase().includes(query);
     const matchesFilter = filter === "all" || learner.status === filter;
-    return matchesQuery && matchesFilter;
+    const matchesClass = classFilter === "all" || `${learner.class}-${learner.stream}` === classFilter;
+    return matchesQuery && matchesFilter && matchesClass;
   });
 
   body.innerHTML = rows.map((learner) => `
@@ -229,19 +231,29 @@ function renderReviewTable() {
 
 function renderLinksTable() {
   const body = $("#links-table-body");
+  const query = ($("#links-search")?.value || "").toLowerCase();
+  const filter = $("#links-status")?.value || "all";
   if (!body) return;
-  body.innerHTML = learners.map((learner) => {
+  body.innerHTML = learners.filter((learner, index) => {
     const status = learner.status === "approved" ? "sent" : learner.status;
+    const matchesQuery = learner.name.toLowerCase().includes(query) || `${learner.class} ${learner.stream}`.toLowerCase().includes(query);
+    const matchesFilter = filter === "all" || status === filter;
+    return matchesQuery && matchesFilter;
+  }).map((learner, index) => {
+    const status = learner.status === "approved" ? "sent" : learner.status;
+    const accessCode = `RW-${learner.class}-${learner.stream}`.replace(/\s+/g, "-").toUpperCase() + `-${String(index + 1).padStart(3, "0")}`;
     return `
       <tr>
         <td><strong>${learner.initials}</strong><br><span class="batch-meta">${learner.name}</span></td>
         <td>${learner.class} ${learner.stream}</td>
         <td><span class="status-pill status-${status}">${statusLabel(status)}</span></td>
         <td>${learner.method}</td>
+        <td><span class="pill code-pill">${accessCode}</span></td>
         <td>${learner.viewed}</td>
         <td>
           <button class="ghost">Resend</button>
           <button class="ghost">Revoke</button>
+          <button class="ghost">Regenerate</button>
         </td>
       </tr>
     `;
@@ -308,11 +320,12 @@ function renderBarChart(selector, rows) {
 function renderSummary(summary = state.summary) {
   const target = $("#summary");
   if (!target) return;
+  const readyLinks = learners.filter((learner) => ["approved", "published", "viewed"].includes(learner.status)).length;
   const cards = [
     ["Learners", summary?.learners ?? 89],
     ["QA rows", summary?.qaRows ?? 3],
     ["Unmatched", summary?.unmatchedSchools ?? 0],
-    ["Ready links", 84]
+    ["Ready links", summary?.readyLinks ?? readyLinks]
   ];
   target.innerHTML = cards.map(([label, value]) => `
     <div class="summary-card">
@@ -478,6 +491,58 @@ function exportLeads() {
   URL.revokeObjectURL(url);
 }
 
+function populateReviewClassOptions() {
+  const select = $("#review-class");
+  if (!select) return;
+  const current = select.value || "all";
+  const options = Array.from(new Set(learners.map((learner) => `${learner.class}-${learner.stream}`)));
+  select.innerHTML = [
+    '<option value="all">All classes</option>',
+    ...options.map((value) => `<option value="${value}">${value.replace("-", " ")}</option>`)
+  ].join("");
+  select.value = options.includes(current) ? current : "all";
+}
+
+function bulkApproveReady() {
+  learners.forEach((learner) => {
+    if (learner.status === "needs-review") {
+      learner.status = "approved";
+      learner.action = "Preview";
+      learner.viewed = "Ready to send";
+    }
+  });
+  renderReviewTable();
+  renderLinksTable();
+  renderSummary();
+  const note = $("#qa-note");
+  if (note) note.textContent = "Ready rows were bulk-approved for demo purposes. Remaining errors still block publishing.";
+}
+
+function exportBoardSnapshot() {
+  if (state.buffer) {
+    downloadWorkbook();
+    return;
+  }
+  const note = $("#custom-fields");
+  if (note) note.textContent = "Upload and review a real batch first, then export the workbook or board snapshot from this analytics view.";
+}
+
+function customiseAnalyticsPack() {
+  const note = $("#custom-fields");
+  if (note) note.textContent = "Custom analytics pack: leadership board report, public-safe marketing snapshot, and subject intervention report for the reviewed batch.";
+  const mode = $("#custom-mode");
+  if (mode) mode.value = "advanced";
+}
+
+function updateCustomAnalyticsHint() {
+  const mode = $("#custom-mode")?.value || "quick";
+  const metric = $("#custom-metric")?.selectedOptions?.[0]?.textContent || "Learner count";
+  const category = $("#custom-category")?.selectedOptions?.[0]?.textContent || "Division";
+  const note = $("#custom-fields");
+  if (!note) return;
+  note.textContent = `${mode === "advanced" ? "Advanced" : "Quick"} pack: ${metric} by ${category}. Useful for board reports, public-safe marketing snapshots, and intervention planning.`;
+}
+
 function bindEvents() {
   document.addEventListener("click", (event) => {
     const trigger = event.target.closest("[data-view-trigger]");
@@ -503,10 +568,19 @@ function bindEvents() {
   $("#download-review")?.addEventListener("click", downloadWorkbook);
   $("#sheet-select")?.addEventListener("change", () => renderPreview());
   $("#review-search")?.addEventListener("input", renderReviewTable);
+  $("#review-class")?.addEventListener("change", renderReviewTable);
   $("#review-status")?.addEventListener("change", renderReviewTable);
+  $("#bulk-approve")?.addEventListener("click", bulkApproveReady);
+  $("#links-search")?.addEventListener("input", renderLinksTable);
+  $("#links-status")?.addEventListener("change", renderLinksTable);
   $("#report-template")?.addEventListener("change", (event) => renderTemplate(event.target.value));
   $("#lead-form")?.addEventListener("submit", saveLead);
   $("#export-leads")?.addEventListener("click", exportLeads);
+  $("#export-dashboard")?.addEventListener("click", exportBoardSnapshot);
+  $("#toggle-customise")?.addEventListener("click", customiseAnalyticsPack);
+  $("#custom-mode")?.addEventListener("change", updateCustomAnalyticsHint);
+  $("#custom-metric")?.addEventListener("change", updateCustomAnalyticsHint);
+  $("#custom-category")?.addEventListener("change", updateCustomAnalyticsHint);
 }
 
 function init() {
@@ -516,10 +590,12 @@ function init() {
   renderTeacherSubmissions();
   renderMissingMarks();
   renderStepper();
+  populateReviewClassOptions();
   renderReviewTable();
   renderLinksTable();
   renderTemplate("primary");
   renderCharts();
+  updateCustomAnalyticsHint();
   renderSummary();
   renderPreview();
 }

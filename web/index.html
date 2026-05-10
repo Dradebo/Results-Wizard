@@ -36,8 +36,8 @@
           Individual learner results stay private. Marketing views use aggregate data only.
         </div>
         <div class="sidebar-footer">
-          <button class="nav-item muted">Support</button>
-          <button class="nav-item muted">Archive</button>
+          <button class="nav-item muted" data-view-trigger="subscription">Request demo</button>
+          <button class="nav-item muted" data-view-trigger="links">Link status</button>
         </div>
       </aside>
 
@@ -120,10 +120,38 @@
             </article>
           </div>
 
+          <div class="dashboard-main-grid">
+            <article class="panel wide">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Recent result batches</p>
+                  <h3>School release timeline</h3>
+                  <p>Each batch moves from review to parent delivery and aggregate analytics without exposing individual learner data publicly.</p>
+                </div>
+                <button class="ghost" data-view-trigger="review">Open review queue</button>
+              </div>
+              <div id="batch-list" class="batch-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Pilot operating model</p>
+                  <h3>What the school is buying</h3>
+                </div>
+              </div>
+              <div class="ops-checklist">
+                <div><strong>1. Intake</strong><span>Collect teacher sheets or the school marksheet in the format they already use.</span></div>
+                <div><strong>2. Review</strong><span>Resolve missing marks, comments, and grade warnings before any parent sees a result.</span></div>
+                <div><strong>3. Publish</strong><span>Release private result links and leadership-ready aggregate summaries from the same batch.</span></div>
+              </div>
+            </article>
+          </div>
+
           <div class="next-actions">
             <button data-view-trigger="batch"><span>1</span><strong>Collect marks</strong><small>Track every teacher</small></button>
-            <button data-view-trigger="review"><span>2</span><strong>Fill report slips</strong><small>Marks and comments</small></button>
-            <button data-view-trigger="links"><span>3</span><strong>Send official links</strong><small>SMS, WhatsApp, email, print</small></button>
+            <button data-view-trigger="review"><span>2</span><strong>Review results</strong><small>Fix marks, comments, and warnings</small></button>
+            <button data-view-trigger="links"><span>3</span><strong>Publish official links</strong><small>SMS, WhatsApp, email, print</small></button>
           </div>
         </section>
 
@@ -136,6 +164,8 @@
               </div>
               <button id="run" class="primary">Check marks file</button>
             </div>
+
+            <div id="batch-stepper" class="stepper" aria-label="Results batch workflow"></div>
 
             <div class="source-type-grid" aria-label="Supported demo source types">
               <article class="source-type active"><strong>CSV teacher marksheet</strong><span>Live pilot path: one subject row per learner, grouped into reviewable reports.</span></article>
@@ -211,6 +241,28 @@
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            <div class="mapping-guide-grid">
+              <article class="panel nested-panel">
+                <h3>Plain-language mapping guide</h3>
+                <div class="mapping-list">
+                  <div><span>Learner name</span><strong>Name / Full name</strong></div>
+                  <div><span>Class and stream</span><strong>Class / Stream</strong></div>
+                  <div><span>Subject scores</span><strong>Subject columns or one-row-per-subject sheets</strong></div>
+                  <div><span>Grade or descriptor</span><strong>Grade / Descriptor / Division</strong></div>
+                  <div><span>Teacher comment</span><strong>Comment / Remark</strong></div>
+                  <div><span>Parent contact</span><strong>Phone / Guardian phone / Email</strong></div>
+                </div>
+              </article>
+              <article class="panel nested-panel">
+                <h3>Approval checkpoints</h3>
+                <div class="ops-checklist compact">
+                  <div><strong>Detect</strong><span>Confirm the right class, term, and learners were found.</span></div>
+                  <div><strong>Validate</strong><span>Stop on missing marks, duplicate learners, and unusual grades.</span></div>
+                  <div><strong>Preview</strong><span>Check the report list and parent_results sheet before publishing.</span></div>
+                </div>
+              </article>
             </div>
 
             <div class="upload-zone">
@@ -300,12 +352,16 @@
               </div>
               <div class="toolbar">
                 <input id="review-search" placeholder="Search learners" />
+                <select id="review-class">
+                  <option value="all">All classes</option>
+                </select>
                 <select id="review-status">
                   <option value="all">All statuses</option>
                   <option value="approved">Approved</option>
                   <option value="needs-review">Needs review</option>
                   <option value="error">Error</option>
                 </select>
+                <button id="bulk-approve" class="primary" type="button">Bulk approve ready</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -338,6 +394,24 @@
               <h3>Report check summary</h3>
               <div id="summary" class="summary-grid"></div>
               <div id="qa-note" class="hint">A parent link is only sent after the school approves the report.</div>
+            </article>
+          </div>
+          <div class="split-grid">
+            <article class="panel nested-panel">
+              <h3>Validation states in use</h3>
+              <div class="ops-checklist compact">
+                <div><strong>Needs review</strong><span>Teacher mark, comment, or attendance field still needs confirmation.</span></div>
+                <div><strong>Error</strong><span>The learner result cannot be published until the gap is fixed.</span></div>
+                <div><strong>Approved</strong><span>The report can move to parent preview and link generation.</span></div>
+              </div>
+            </article>
+            <article class="panel nested-panel">
+              <h3>High-risk checks</h3>
+              <div class="mapping-list">
+                <div><span>Duplicate learner</span><strong>Stop publishing and merge the correct record</strong></div>
+                <div><span>Grade mismatch</span><strong>Check school scale before parent preview</strong></div>
+                <div><span>Missing comment</span><strong>Return to class teacher before approval</strong></div>
+              </div>
             </article>
           </div>
           <button id="refresh" class="ghost hidden">Refresh preview</button>
@@ -374,6 +448,12 @@
                 <label><input type="checkbox" checked /> Allow correction requests before final lock</label>
                 <label><input type="checkbox" /> Include downloadable PDF slip</label>
               </div>
+
+              <div class="authenticity-list">
+                <div><span>Parent promise</span><strong>Private, school-approved result page</strong></div>
+                <div><span>Result controls</span><strong>Published date, result ID, correction path, and school notice</strong></div>
+                <div><span>Template families</span><strong>Primary, CBC, PLE, secondary, and minimal link formats</strong></div>
+              </div>
             </article>
 
             <article class="phone-frame" aria-label="Parent mobile result preview">
@@ -401,6 +481,13 @@
                   <small>Private parent result link. Individual ranking is hidden by default.</small>
                 </div>
 
+                <div class="parent-meta-grid">
+                  <div><span>Learner ID</span><strong>KV-P7-014</strong></div>
+                  <div><span>Publish date</span><strong>09 May 2026</strong></div>
+                  <div><span>Correction window</span><strong>Open for 5 days</strong></div>
+                  <div><span>School contact</span><strong>+256 700 000 000</strong></div>
+                </div>
+
                 <div id="parent-result-body"></div>
 
                 <div class="comment-box">
@@ -415,6 +502,7 @@
 
                 <div class="phone-actions">
                   <button class="primary">Download result slip</button>
+                  <button class="ghost">Request correction</button>
                   <button class="ghost">Contact school</button>
                 </div>
               </div>
@@ -423,6 +511,13 @@
         </section>
 
         <section id="links" class="view" data-title="Parent Links">
+          <div class="metric-grid compact">
+            <article class="metric-card"><span>Ready to send</span><strong>84</strong><small>Approved reports</small></article>
+            <article class="metric-card"><span>Delivered</span><strong>73</strong><small>Across SMS, WhatsApp, email, and print</small></article>
+            <article class="metric-card warning"><span>Corrections open</span><strong>5</strong><small>Parents can still request changes</small></article>
+            <article class="metric-card"><span>Viewed</span><strong>58</strong><small>Tracked after publishing</small></article>
+          </div>
+
           <article class="panel">
             <div class="panel-heading">
               <div>
@@ -430,6 +525,17 @@
                 <p>Send, track, revoke, regenerate, or print access codes after approval.</p>
               </div>
               <button class="primary">Send selected links</button>
+            </div>
+            <div class="toolbar">
+              <input id="links-search" placeholder="Search learners or classes" />
+              <select id="links-status">
+                <option value="all">All link statuses</option>
+                <option value="sent">Sent</option>
+                <option value="needs-review">Needs review</option>
+                <option value="error">Error</option>
+                <option value="published">Published</option>
+                <option value="viewed">Viewed</option>
+              </select>
             </div>
             <div class="link-methods">
               <button>SMS</button>
@@ -445,6 +551,7 @@
                     <th>Class</th>
                     <th>Status</th>
                     <th>Method</th>
+                    <th>Access code</th>
                     <th>Viewed</th>
                     <th>Actions</th>
                   </tr>
@@ -506,6 +613,20 @@
             <article class="panel chart-card">
               <div class="panel-heading compact-heading">
                 <div>
+                  <h3>Term trend and follow-up</h3>
+                  <p>Show where leadership should act next after review is complete.</p>
+                </div>
+              </div>
+              <div class="ops-checklist compact analytics-ops">
+                <div><strong>Best movement</strong><span>P7 improved by 3.2% after teacher review completion.</span></div>
+                <div><strong>Attention area</strong><span>English remains the weakest subject across the reviewed cohort.</span></div>
+                <div><strong>Next export</strong><span>Board report and marketing-safe snapshot are both ready once the batch is published.</span></div>
+              </div>
+            </article>
+
+            <article class="panel chart-card">
+              <div class="panel-heading compact-heading">
+                <div>
                   <h3>Custom analytics pack</h3>
                   <p>Subscription reports can be tailored for the school's questions.</p>
                 </div>
@@ -530,13 +651,27 @@
             </article>
           </div>
 
-          <button id="dashboard-refresh" class="ghost hidden">Refresh dashboard</button>
-          <button id="download-dashboard" class="ghost hidden" disabled>Download workbook</button>
-          <button id="export-dashboard" class="ghost hidden" disabled>Export dashboard</button>
-          <button id="toggle-customise" class="ghost hidden">Customise</button>
+          <div class="button-row analytics-actions">
+            <button id="download-dashboard" class="ghost" disabled>Download workbook</button>
+            <button id="export-dashboard" class="ghost">Export board snapshot</button>
+            <button id="toggle-customise" class="ghost">Customise analytics pack</button>
+          </div>
         </section>
 
         <section id="subscription" class="view" data-title="Subscription And Demo Requests">
+          <article class="panel lead-journey-panel">
+            <div>
+              <p class="eyebrow">Assisted pilot sequence</p>
+              <h3>How a school starts</h3>
+              <p>The product is sold as a pilot outcome first: intake the marksheet, review the batch, preview the parent page, then publish official links and aggregate analytics.</p>
+            </div>
+            <div class="ops-checklist compact">
+              <div><strong>Request demo</strong><span>Confirm school type, learner count, and the results format already in use.</span></div>
+              <div><strong>Run pilot</strong><span>Use one term batch to prove review-before-publish and parent trust.</span></div>
+              <div><strong>Expand</strong><span>Add custom analytics, more report templates, and staff training if the school continues.</span></div>
+            </div>
+          </article>
+
           <div class="pricing-grid">
             <article class="price-card">
               <span class="badge">Basic</span>
@@ -591,13 +726,25 @@
               <input name="contact" placeholder="Contact person" required />
               <input name="phone" placeholder="Phone or WhatsApp" required />
               <input name="email" placeholder="Email optional" />
+              <select name="schoolType">
+                <option>Primary school</option>
+                <option>Secondary school</option>
+                <option>Mixed school</option>
+                <option>Other</option>
+              </select>
+              <select name="learnerBand">
+                <option>Under 300 learners</option>
+                <option>300 - 800 learners</option>
+                <option>800 - 1,500 learners</option>
+                <option>1,500+ learners</option>
+              </select>
               <select name="interest">
                 <option>Term Portal - UGX 500,000 / term</option>
                 <option>Analytics Plus - UGX 1,000,000 / term</option>
                 <option>Custom School Analytics - UGX 1,500,000 / term</option>
               </select>
               <textarea name="message" placeholder="Tell us what your school needs"></textarea>
-              <button class="primary" type="submit">Send interest</button>
+              <button class="primary" type="submit">Request a school demo</button>
               <button class="ghost" type="button" id="export-leads">Download enquiries</button>
             </form>
             <div id="lead-status" class="hint"></div>
