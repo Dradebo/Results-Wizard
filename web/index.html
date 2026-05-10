@@ -58,16 +58,16 @@
             <div>
               <p class="eyebrow">Results portal demo</p>
               <h2>One reviewed results batch becomes parent result links and school analytics.</h2>
-              <p>Upload marksheets, check issues before publishing, preview the private parent page, then share official links while leadership gets aggregate-only insights.</p>
+              <p>Upload teacher marksheets, let the portal structure the batch, review every issue before publishing, then share private parent links while leadership gets aggregate-only insights.</p>
             </div>
             <div class="portal-hero-actions">
               <button class="primary" data-view-trigger="batch">Start demo batch</button>
               <button class="ghost" data-view-trigger="parent">Preview parent link</button>
             </div>
             <div class="portal-story">
-              <span><strong>1 Upload</strong><small>Spreadsheet, CSV, pasted table, or PLE adapter</small></span>
-              <span><strong>2 Review</strong><small>Plain-language validation before anything is sent</small></span>
-              <span><strong>3 Publish</strong><small>Official parent links plus aggregate analytics</small></span>
+              <span><strong>1 Ingest</strong><small>CSV teacher sheets today; spreadsheets, pasted tables, and PLE as adapters</small></span>
+              <span><strong>2 Human review</strong><small>The system proposes records; the school approves before anything is sent</small></span>
+              <span><strong>3 Publish</strong><small>Parent-ready workbook, private links, and aggregate analytics</small></span>
             </div>
           </article>
 
@@ -132,24 +132,31 @@
             <div class="panel-heading">
               <div>
                 <h3>New results batch</h3>
-                <p>Start with the format your school already has. Results Wizard detects the structure, maps fields, flags issues, and prepares private parent links after review.</p>
+                <p>Start with the marks file your school already has. Results Wizard structures the data, flags gaps, prepares a parent-ready workbook, and keeps a human approval checkpoint before publishing.</p>
               </div>
               <button id="run" class="primary">Check marks file</button>
             </div>
 
             <div class="source-type-grid" aria-label="Supported demo source types">
-              <article class="source-type active"><strong>Spreadsheet / marksheet</strong><span>Best first path for term reports and teacher submissions.</span></article>
-              <article class="source-type"><strong>CSV</strong><span>Useful when systems export flat marks tables.</span></article>
-              <article class="source-type"><strong>Pasted table</strong><span>For schools starting from copied Excel or Google Sheets data.</span></article>
+              <article class="source-type active"><strong>CSV teacher marksheet</strong><span>Live pilot path: one subject row per learner, grouped into reviewable reports.</span></article>
+              <article class="source-type"><strong>Spreadsheet / marksheet</strong><span>Next path for term reports and teacher submissions.</span></article>
+              <article class="source-type"><strong>Pasted table</strong><span>Future path for schools starting from copied Excel or Google Sheets data.</span></article>
               <article class="source-type"><strong>PLE PDF adapter</strong><span>Existing parser remains one adapter, not the whole product.</span></article>
             </div>
 
             <div class="process-board" aria-label="Term report process">
-              <article><span>1</span><strong>Upload</strong><small>Add the school's marksheet, CSV, pasted table, or PLE PDF sample.</small></article>
+              <article><span>1</span><strong>Upload</strong><small>Add the school's CSV marksheet or PLE PDF sample.</small></article>
               <article><span>2</span><strong>Detect</strong><small>Identify learners, subjects, marks, comments, classes, and guardians.</small></article>
               <article><span>3</span><strong>Map</strong><small>Match school columns to the result-link and report-card template.</small></article>
               <article><span>4</span><strong>Validate</strong><small>See missing marks, duplicates, grade warnings, and pending comments.</small></article>
-              <article><span>5</span><strong>Publish</strong><small>Send secure parent links only after the school approves.</small></article>
+              <article><span>5</span><strong>Preview</strong><small>Review learner records and the parent_results workbook sheet.</small></article>
+              <article><span>6</span><strong>Publish</strong><small>Send secure parent links only after the school approves.</small></article>
+            </div>
+
+            <div class="operator-copilot-panel" aria-label="Operator review checkpoint">
+              <span class="badge">Human review checkpoint</span>
+              <strong>Built like a copilot, not a black box.</strong>
+              <p>The portal can propose structured learner records and parent-ready rows, but the operator must confirm gaps, comments, and publication choices before any parent message goes out.</p>
             </div>
 
             <div class="template-download-panel">

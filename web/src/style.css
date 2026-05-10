@@ -1067,7 +1067,7 @@ select {
 
 .process-board {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -1104,6 +1104,27 @@ select {
 .process-board small {
   color: var(--muted);
   line-height: 1.45;
+}
+
+.operator-copilot-panel {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid rgba(6, 36, 31, 0.22);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #f7fbf9 0%, #fffdf5 100%);
+}
+
+.operator-copilot-panel strong {
+  color: var(--primary);
+  font-family: var(--heading-font);
+  font-size: 16px;
+}
+
+.operator-copilot-panel p {
+  max-width: 840px;
+  margin: 0;
 }
 
 .template-download-panel {

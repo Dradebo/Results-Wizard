@@ -407,6 +407,7 @@ async function runConversion() {
     $("#download-dashboard")?.removeAttribute("disabled");
     if ($("#download-hint")) $("#download-hint").textContent = "Results are ready for school review before parent links are sent.";
     setStatus("Marks checked. Review the report list before sending links.", "success");
+    setView("review");
   } catch (error) {
     console.error(error);
     setStatus(`Marks could not be checked: ${error.message || error}`, "error");

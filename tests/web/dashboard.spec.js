@@ -60,6 +60,26 @@ test("mobile dashboard and parent preview do not horizontally overflow", async (
   expect(parentOverflow).toBeLessThanOrEqual(1);
 });
 
+test("CSV teacher marks ingest generates review preview and parent-ready workbook", async ({ page }) => {
+  const sampleCsv = path.resolve("tests/fixtures/sample-teacher-marks.csv");
+  expect(fs.existsSync(sampleCsv)).toBeTruthy();
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "New Batch", exact: true }).click();
+  await page.locator("#pdf-input").setInputFiles(sampleCsv);
+  await page.getByRole("button", { name: "Check marks file" }).click();
+
+  await expect(page.locator("#status")).toHaveText("Marks checked. Review the report list before sending links.");
+  await expect(page.locator("#summary")).toContainText("3");
+  await expect(page.locator("#summary")).toContainText("Ready links");
+  await expect(page.locator("#sheet-select")).toContainText("parent_results");
+  await page.locator("#sheet-select").selectOption("parent_results");
+  await expect(page.locator("#preview-table tbody")).toContainText("Nakato Sarah");
+  await expect(page.locator("#preview-table tbody")).toContainText("RW-P7-BLUE-001");
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await expect(page.locator("#preview-table tbody tr").first()).toBeVisible();
+});
+
 test("optional PLE PDF ingest still feeds review preview", async ({ page }) => {
   test.setTimeout(180_000);
   const envPdf = process.env.PLE_SAMPLE_PDF ? path.resolve(process.env.PLE_SAMPLE_PDF) : "";

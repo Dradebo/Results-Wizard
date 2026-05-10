@@ -509,6 +509,173 @@ function buildSubjectSheet(records, subject) {
   return { rows, headers };
 }
 
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (quoted) {
+      if (ch === '"' && next === '"') {
+        cell += '"';
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      row.push(cell.trim());
+      cell = "";
+    } else if (ch === "\n") {
+      row.push(cell.trim());
+      if (row.some((value) => value !== "")) rows.push(row);
+      row = [];
+      cell = "";
+    } else if (ch !== "\r") {
+      cell += ch;
+    }
+  }
+  row.push(cell.trim());
+  if (row.some((value) => value !== "")) rows.push(row);
+  return rows;
+}
+
+function headerLookup(headers, aliases) {
+  const normalized = headers.map((h) => normalizeText(h).toLowerCase());
+  const aliasList = aliases.map((a) => a.toLowerCase());
+  const idx = normalized.findIndex((header) => aliasList.includes(header));
+  return idx >= 0 ? idx : -1;
+}
+
+function resultIdFor(index, className, stream) {
+  const classPart = normalizeText(className || "CLS").toUpperCase().replace(/[^A-Z0-9]+/g, "") || "CLS";
+  const streamPart = normalizeText(stream || "GEN").toUpperCase().replace(/[^A-Z0-9]+/g, "") || "GEN";
+  return `RW-${classPart}-${streamPart}-${String(index + 1).padStart(3, "0")}`;
+}
+
+async function parseTeacherCsvFile(file) {
+  const rows = parseCsvRows(await file.text());
+  if (rows.length < 2) return { records: [], qa: [{ source_pdf: file.name, page: "", raw_text: "CSV has no data rows." }] };
+
+  const headers = rows[0];
+  const getIndex = (...aliases) => headerLookup(headers, aliases);
+  const idx = {
+    learner: getIndex("Learner name", "Name", "Full name", "Student name"),
+    className: getIndex("Class", "Grade", "Year group"),
+    stream: getIndex("Stream", "Section"),
+    subject: getIndex("Subject", "Learning area"),
+    mark: getIndex("Mark", "Score", "Marks"),
+    grade: getIndex("Grade", "Descriptor", "Division"),
+    teacherComment: getIndex("Teacher comment", "Subject comment", "Comment"),
+    attendance: getIndex("Attendance"),
+    conduct: getIndex("Conduct"),
+    classComment: getIndex("Class teacher comment", "Class comment"),
+    headComment: getIndex("Head teacher comment", "Headteacher comment", "School comment"),
+    phone: getIndex("Parent phone", "Guardian phone", "Phone")
+  };
+
+  if (idx.learner < 0 || idx.subject < 0) {
+    return { records: [], qa: [{ source_pdf: file.name, page: "", raw_text: "CSV must include learner name and subject columns." }] };
+  }
+
+  const learners = new Map();
+  const qa = [];
+  rows.slice(1).forEach((values, rowIndex) => {
+    const learnerName = values[idx.learner] || "";
+    const subject = values[idx.subject] || "";
+    if (!learnerName || !subject) {
+      qa.push({ source_pdf: file.name, page: String(rowIndex + 2), raw_text: values.join(",") });
+      return;
+    }
+    const className = idx.className >= 0 ? values[idx.className] || "" : "";
+    const stream = idx.stream >= 0 ? values[idx.stream] || "" : "";
+    const key = [learnerName, className, stream].map((part) => normalizeText(part).toLowerCase()).join("||");
+    if (!learners.has(key)) {
+      learners.set(key, {
+        learner_name: learnerName,
+        class_name: className,
+        stream,
+        parent_phone: idx.phone >= 0 ? values[idx.phone] || "" : "",
+        attendance: idx.attendance >= 0 ? values[idx.attendance] || "" : "",
+        conduct: idx.conduct >= 0 ? values[idx.conduct] || "" : "",
+        teacher_comment: idx.classComment >= 0 ? values[idx.classComment] || "" : "",
+        school_comment: idx.headComment >= 0 ? values[idx.headComment] || "" : "",
+        subjects: {}
+      });
+    }
+    const learner = learners.get(key);
+    learner.subjects[subject] = {
+      mark: idx.mark >= 0 ? values[idx.mark] || "" : "",
+      grade: idx.grade >= 0 ? values[idx.grade] || "" : "",
+      comment: idx.teacherComment >= 0 ? values[idx.teacherComment] || "" : ""
+    };
+    if (!(idx.mark >= 0 ? values[idx.mark] : "")) {
+      qa.push({ source_pdf: file.name, page: String(rowIndex + 2), raw_text: `${learnerName}: missing mark for ${subject}` });
+    }
+  });
+
+  const records = [...learners.values()].map((learner, index) => {
+    const subjectEntries = Object.entries(learner.subjects);
+    const total = subjectEntries.reduce((sum, [, value]) => sum + (Number(value.mark) || 0), 0);
+    const average = subjectEntries.length ? Math.round(total / subjectEntries.length) : "";
+    const record = {
+      district: "",
+      school_uneb: "",
+      school_name: "Demo School",
+      year: "2026",
+      index_no: resultIdFor(index, learner.class_name, learner.stream),
+      learner_name: learner.learner_name,
+      sex: "",
+      eng: learner.subjects.English?.mark || learner.subjects.ENG?.mark || "",
+      sci: learner.subjects.Science?.mark || learner.subjects.SCI?.mark || "",
+      sst: learner.subjects["Social Studies"]?.mark || learner.subjects.SST?.mark || "",
+      math: learner.subjects.Mathematics?.mark || learner.subjects.Math?.mark || "",
+      aggr: average,
+      div: "",
+      source_pdf: file.name,
+      page: "",
+      class_name: learner.class_name,
+      stream: learner.stream,
+      parent_phone: learner.parent_phone,
+      attendance: learner.attendance,
+      conduct: learner.conduct,
+      teacher_comment: learner.teacher_comment,
+      school_comment: learner.school_comment,
+      subjects_json: JSON.stringify(learner.subjects)
+    };
+    return record;
+  });
+
+  return { records, qa };
+}
+
+function buildParentResults(records) {
+  const rows = records.map((row) => ({
+    result_id: row.index_no || "",
+    learner_name: row.learner_name || "",
+    class: row.class_name || "",
+    stream: row.stream || "",
+    parent_phone: row.parent_phone || "",
+    overall: row.aggr || row.div || "Approved",
+    attendance: row.attendance || "",
+    conduct: row.conduct || "",
+    teacher_comment: row.teacher_comment || "",
+    school_comment: row.school_comment || "",
+    parent_link_status: "Ready for review",
+    access_code: row.index_no || ""
+  }));
+  const headers = ["result_id", "learner_name", "class", "stream", "parent_phone", "overall", "attendance", "conduct", "teacher_comment", "school_comment", "parent_link_status", "access_code"];
+  return { rows, headers };
+}
+
 function addSheet(workbook, name, headers, rows) {
   const sheet = workbook.addWorksheet(name);
   if (!headers.length) return sheet;
@@ -555,11 +722,12 @@ export async function convertPdfsToWorkbook(files, onProgress = () => {}) {
 
   let processed = 0;
   for (const file of files) {
-    const { records, qa } = await parsePdfFile(file, {
-      progressCb: () => {}
-    });
-    allRecords.push(...records);
-    allQa.push(...qa);
+    const lowerName = String(file.name || "").toLowerCase();
+    const parsed = lowerName.endsWith(".csv")
+      ? await parseTeacherCsvFile(file)
+      : await parsePdfFile(file, { progressCb: () => {} });
+    allRecords.push(...parsed.records);
+    allQa.push(...parsed.qa);
     processed += 1;
     onProgress(processed, files.length);
   }
@@ -574,6 +742,7 @@ export async function convertPdfsToWorkbook(files, onProgress = () => {}) {
   const sciSheet = buildSubjectSheet(allRecords, "sci");
   const sstSheet = buildSubjectSheet(allRecords, "sst");
   const mathSheet = buildSubjectSheet(allRecords, "math");
+  const parentResults = buildParentResults(allRecords);
 
   const sheets = {
     raw_records: addSheet(
@@ -606,6 +775,7 @@ export async function convertPdfsToWorkbook(files, onProgress = () => {}) {
     sci: addSheet(workbook, "sci", sciSheet.headers, sciSheet.rows),
     SST: addSheet(workbook, "SST", sstSheet.headers, sstSheet.rows),
     mATH: addSheet(workbook, "mATH", mathSheet.headers, mathSheet.rows),
+    parent_results: addSheet(workbook, "parent_results", parentResults.headers, parentResults.rows),
     qa_issues: addSheet(workbook, "qa_issues", ["source_pdf", "page", "raw_text"], allQa)
   };
 
