@@ -3,506 +3,598 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PLE Import Prep (Web)</title>
+    <title>Results Wizard</title>
     <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <div class="app-shell">
-      <header class="top-bar">
+      <aside class="sidebar">
         <div class="brand">
-          <div class="logo">PLE</div>
+          <div class="logo">RW</div>
           <div>
-            <div class="title">PLE Import Prep (Web)</div>
-            <div class="subtitle">PDF ingest → Excel workbook → download</div>
+            <div class="title">Results Wizard</div>
+            <div class="subtitle">School results portal</div>
           </div>
         </div>
-        <div class="steps">
-          <button class="step active" data-step="ingest">1. Ingest</button>
-          <button class="step" data-step="review">2. Review</button>
-          <button class="step" data-step="dashboard">3. Dashboard</button>
+
+        <button class="primary full-width" data-view-trigger="batch">New results batch</button>
+
+        <nav class="nav" aria-label="Primary">
+          <button class="nav-item active" data-view="dashboard"><span aria-hidden="true">D</span>Dashboard</button>
+          <button class="nav-item" data-view="batch"><span aria-hidden="true">N</span>New Batch</button>
+          <button class="nav-item" data-view="review"><span aria-hidden="true">R</span>Review</button>
+          <button class="nav-item" data-view="parent"><span aria-hidden="true">P</span>Parent View</button>
+          <button class="nav-item" data-view="links"><span aria-hidden="true">L</span>Links</button>
+          <button class="nav-item" data-view="analytics"><span aria-hidden="true">A</span>Analytics</button>
+          <button class="nav-item" data-view="subscription"><span aria-hidden="true">S</span>Subscription</button>
+        </nav>
+
+        <div class="sidebar-note">
+          <span class="status-dot published"></span>
+          Individual learner results stay private. Marketing views use aggregate data only.
         </div>
-      </header>
+        <div class="sidebar-footer">
+          <button class="nav-item muted">Support</button>
+          <button class="nav-item muted">Archive</button>
+        </div>
+      </aside>
 
-      <main class="content">
-        <section id="ingest" class="panel active">
-          <div class="panel-header">
-            <h1>Convert UNEB PDFs to Excel</h1>
-            <p>Select PDFs, run conversion in-browser, then download the workbook.</p>
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Kampala View Junior School</p>
+            <h1 id="page-title">Term 3, 2026 Dashboard</h1>
           </div>
-
-          <div class="grid">
-            <div class="card">
-              <h2>Step 1: Select input PDFs</h2>
-              <p>Files stay local to your browser—nothing uploaded.</p>
-              <label class="upload">
-                <input id="pdf-input" type="file" accept="application/pdf" multiple />
-                <span>Choose PDF files</span>
-              </label>
-              <div id="pdf-list" class="file-list empty">No PDFs selected.</div>
-            </div>
-
-            <div class="card">
-              <h2>Step 2: Convert</h2>
-              <p>Parsing happens on-device using pdfjs + ExcelJS.</p>
-              <button id="run" class="primary large">Run conversion</button>
-              <div id="status" class="status">Ready.</div>
-              <div id="conversion-progress" class="progress-bar hidden">
-                <div id="conversion-progress-fill" class="progress-fill"></div>
-              </div>
-            </div>
-
-            <div class="card">
-              <h2>Step 3: Download</h2>
-              <p>Grab the generated workbook once the run completes.</p>
-              <button id="download" class="ghost" disabled>Download workbook (.xlsx)</button>
-              <div id="download-hint" class="status muted">Waiting for conversion…</div>
-            </div>
+          <div class="topbar-actions">
+            <button class="ghost" data-view-trigger="analytics">Export analytics snapshot</button>
+            <button class="primary" data-view-trigger="batch">New results batch</button>
           </div>
-        </section>
+        </header>
 
-        <section id="review" class="panel">
-          <div class="panel-header">
-              <div class="panel-title-row">
-                <div>
-                  <h1>Preview & QA</h1>
-                  <p>Peek at key sheets before importing downstream.</p>
-                </div>
-                <div class="title-actions">
-                  <button id="refresh" class="ghost">Refresh preview</button>
-                  <button id="download-review" class="primary" disabled>Download workbook</button>
-                </div>
-              </div>
+        <section id="dashboard" class="view active" data-title="Term 3, 2026 Dashboard">
+          <article class="portal-hero" aria-label="Results portal promise">
+            <div>
+              <p class="eyebrow">Results portal demo</p>
+              <h2>One reviewed results batch becomes parent result links and school analytics.</h2>
+              <p>Upload marksheets, check issues before publishing, preview the private parent page, then share official links while leadership gets aggregate-only insights.</p>
             </div>
-
-          <div class="validation-shell">
-            <div class="card">
-              <h2>Workbook Preview</h2>
-              <div class="preview-controls">
-                <select id="sheet-select"></select>
-                <span class="pill" id="preview-size"></span>
-              </div>
-              <div class="table-wrap">
-                <table id="preview-table"></table>
-              </div>
+            <div class="portal-hero-actions">
+              <button class="primary" data-view-trigger="batch">Start demo batch</button>
+              <button class="ghost" data-view-trigger="parent">Preview parent link</button>
             </div>
-
-            <div class="card">
-              <h2>Validation Summary</h2>
-              <p>Snapshot totals derived from the generated workbook.</p>
-              <div id="summary" class="summary-grid"></div>
-              <div class="tip-box" id="qa-note"></div>
+            <div class="portal-story">
+              <span><strong>1 Upload</strong><small>Spreadsheet, CSV, pasted table, or PLE adapter</small></span>
+              <span><strong>2 Review</strong><small>Plain-language validation before anything is sent</small></span>
+              <span><strong>3 Publish</strong><small>Official parent links plus aggregate analytics</small></span>
             </div>
-          </div>
-        </section>
+          </article>
 
-        <section id="dashboard" class="panel">
-          <div class="panel-header">
-            <div class="panel-title-row">
-              <div>
-                <h1>Results Dashboard</h1>
-                <p>Instant visuals for a quick read, with deeper exploration when you need it.</p>
-              </div>
-              <div class="title-actions">
-                <button id="toggle-customise" class="ghost export-ignore" aria-pressed="false">Customise</button>
-                <button id="export-dashboard" class="ghost export-ignore" disabled>Export dashboard</button>
-                <button id="dashboard-refresh" class="ghost">Refresh dashboard</button>
-                <button id="download-dashboard" class="ghost" disabled>Download workbook</button>
-              </div>
-            </div>
-          </div>
-
-          <div id="dashboard-kpis" class="summary-grid kpi-grid"></div>
-
-          <div class="dashboard-controls">
-            <label>
-              Success rate
-              <select id="success-definition">
-                <option value="standard" selected>Standard (Div 1-4)</option>
-                <option value="strict">Strict (Div 1-2)</option>
-              </select>
-            </label>
-            <label>
-              Include absentees (X)
-              <select id="include-x">
-                <option value="exclude" selected>Exclude from rates</option>
-                <option value="include">Include in rates</option>
-              </select>
-            </label>
-            <label>
-              Division view
-              <select id="division-view">
-                <option value="percent" selected>Percent</option>
-                <option value="count">Counts</option>
-              </select>
-            </label>
+          <div class="metric-strip" aria-label="Term summary">
+            <article class="metric-card"><span>Classes reporting</span><strong>8</strong><small>Primary and lower secondary</small></article>
+            <article class="metric-card"><span>Reports ready</span><strong>84</strong><small>Filled and checked</small></article>
+            <article class="metric-card"><span>Parent links sent</span><strong>450 <small>/ 480</small></strong><small>93% delivery readiness</small></article>
+            <article class="metric-card warning"><span>Action required</span><strong>12</strong><small>Resolve before publishing</small></article>
           </div>
 
           <div class="dashboard-grid">
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div class="chart-header-row">
+            <article class="panel chart-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Active batch</p>
+                  <h3>Term report progress</h3>
+                  <p>P7 reports are nearly ready. Follow up with teachers, fill the report slips, check the parent view, then send links.</p>
+                </div>
+                <button class="ghost" data-view-trigger="analytics">View full report</button>
+              </div>
+
+              <div class="trend-chart" aria-label="Class performance trend">
+                <div class="trend-plot">
+                  <span style="left:8%; bottom:23%"></span>
+                  <span style="left:22%; bottom:31%"></span>
+                  <span style="left:36%; bottom:38%"></span>
+                  <span style="left:50%; bottom:47%"></span>
+                  <span style="left:64%; bottom:53%"></span>
+                  <span style="left:78%; bottom:61%"></span>
+                  <span class="hot" style="left:92%; bottom:70%"></span>
+                </div>
+                <div class="chart-axis"><span>P1</span><span>P2</span><span>P3</span><span>P4</span><span>P5</span><span>P6</span><span>P7</span></div>
+                <div class="chart-key"><span><i></i>Top quartile</span><span><i class="muted-dot"></i>Average</span><span><i class="warn-dot"></i>Needs attention</span></div>
+              </div>
+            </article>
+
+            <article class="panel queue-panel">
+              <div class="panel-heading">
+                <div>
+                  <h3>Items to fix <b class="queue-count">12</b></h3>
+                  <p>These must be corrected before parent links are sent.</p>
+                </div>
+              </div>
+              <div class="queue-list compact-list">
+                <button data-view-trigger="review"><strong>P7 Mathematics</strong><span>3 learners are missing marks.</span></button>
+                <button data-view-trigger="review"><strong>P4 English</strong><span>Teacher has not submitted the class sheet.</span></button>
+                <button data-view-trigger="review"><strong>P2 Science</strong><span>Teacher comments need review.</span></button>
+              </div>
+              <button class="ghost queue-cta" data-view-trigger="review">Resolve all issues</button>
+            </article>
+          </div>
+
+          <div class="next-actions">
+            <button data-view-trigger="batch"><span>1</span><strong>Collect marks</strong><small>Track every teacher</small></button>
+            <button data-view-trigger="review"><span>2</span><strong>Fill report slips</strong><small>Marks and comments</small></button>
+            <button data-view-trigger="links"><span>3</span><strong>Send official links</strong><small>SMS, WhatsApp, email, print</small></button>
+          </div>
+        </section>
+
+        <section id="batch" class="view" data-title="New Results Batch">
+          <article class="panel batch-command">
+            <div class="panel-heading">
+              <div>
+                <h3>New results batch</h3>
+                <p>Start with the format your school already has. Results Wizard detects the structure, maps fields, flags issues, and prepares private parent links after review.</p>
+              </div>
+              <button id="run" class="primary">Check marks file</button>
+            </div>
+
+            <div class="source-type-grid" aria-label="Supported demo source types">
+              <article class="source-type active"><strong>Spreadsheet / marksheet</strong><span>Best first path for term reports and teacher submissions.</span></article>
+              <article class="source-type"><strong>CSV</strong><span>Useful when systems export flat marks tables.</span></article>
+              <article class="source-type"><strong>Pasted table</strong><span>For schools starting from copied Excel or Google Sheets data.</span></article>
+              <article class="source-type"><strong>PLE PDF adapter</strong><span>Existing parser remains one adapter, not the whole product.</span></article>
+            </div>
+
+            <div class="process-board" aria-label="Term report process">
+              <article><span>1</span><strong>Upload</strong><small>Add the school's marksheet, CSV, pasted table, or PLE PDF sample.</small></article>
+              <article><span>2</span><strong>Detect</strong><small>Identify learners, subjects, marks, comments, classes, and guardians.</small></article>
+              <article><span>3</span><strong>Map</strong><small>Match school columns to the result-link and report-card template.</small></article>
+              <article><span>4</span><strong>Validate</strong><small>See missing marks, duplicates, grade warnings, and pending comments.</small></article>
+              <article><span>5</span><strong>Publish</strong><small>Send secure parent links only after the school approves.</small></article>
+            </div>
+
+            <div class="template-download-panel">
+              <div>
+                <span class="badge">Expected marks format</span>
+                <h3>Teacher marks template</h3>
+                <p>Each teacher fills one row per learner. The school keeps its own subjects, grades, comments, attendance, and report notices.</p>
+              </div>
+              <button id="download-template" class="primary" type="button">Download template</button>
+            </div>
+
+            <div class="template-preview" aria-label="Expected teacher marks template">
+              <div class="template-preview-head">
+                <strong>Template columns</strong>
+                <span>CSV / Excel ready</span>
+              </div>
+              <div class="table-wrap small">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Learner name</th>
+                      <th>Class</th>
+                      <th>Stream</th>
+                      <th>Subject</th>
+                      <th>Mark</th>
+                      <th>Grade</th>
+                      <th>Teacher comment</th>
+                      <th>Attendance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Nakato Sarah</td>
+                      <td>P7</td>
+                      <td>Blue</td>
+                      <td>Mathematics</td>
+                      <td>92</td>
+                      <td>D1</td>
+                      <td>Excellent reasoning</td>
+                      <td>64/66</td>
+                    </tr>
+                    <tr>
+                      <td>Kato Daniel</td>
+                      <td>P7</td>
+                      <td>Blue</td>
+                      <td>English</td>
+                      <td>76</td>
+                      <td>C3</td>
+                      <td>Good effort</td>
+                      <td>62/66</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="upload-zone">
+              <label class="upload-card">
+                <input id="pdf-input" type="file" accept=".pdf,.xlsx,.csv,application/pdf" multiple />
+                <span class="upload-icon">+</span>
+                <strong>Add marks file or teacher sheet</strong>
+                <small>Upload the completed template, teacher spreadsheets, CSV files, or PDF summaries. Nothing is sent to parents until the school approves it.</small>
+              </label>
+
+              <div class="upload-status">
+                <div id="pdf-list" class="file-list empty">No files selected.</div>
+                <div id="status" class="status">Ready to check a marks file.</div>
+                <div class="plain-steps" aria-label="How marks are processed">
+                  <div><strong>Read</strong><span>The file is opened and matched to learners, subjects, marks, grades, comments, and attendance.</span></div>
+                  <div><strong>Check</strong><span>Missing marks, missing comments, unusual scores, and pending teachers are shown for school review.</span></div>
+                  <div><strong>Prepare</strong><span>Approved entries are placed into the selected report format before parent links are sent.</span></div>
+                </div>
+                <div id="conversion-progress" class="progress-bar hidden">
+                  <div id="conversion-progress-fill" class="progress-fill"></div>
+                </div>
+                <div class="button-row">
+                  <button id="download" class="ghost" disabled>Download checked results</button>
+                  <button id="download-review" class="ghost" disabled>Download report list</button>
+                </div>
+                <div id="download-hint" class="hint">Waiting for a marks file.</div>
+              </div>
+            </div>
+          </article>
+
+          <div class="teacher-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h3>Teacher submissions</h3>
+                  <p>See who has submitted marks and who still needs a reminder.</p>
+                </div>
+              </div>
+              <div id="teacher-submissions" class="teacher-list"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h3>Missing marks</h3>
+                  <p>These reports cannot be sent until the gaps are filled.</p>
+                </div>
+              </div>
+              <div id="missing-marks" class="missing-list"></div>
+            </article>
+          </div>
+
+          <div class="split-grid">
+            <article class="panel">
+              <h3>Report format</h3>
+              <div class="report-builder">
+                <div><span>School</span><strong>Kampala View Junior School</strong></div>
+                <div><span>Term</span><strong>Term 3, 2026</strong></div>
+                <div><span>Format</span><strong id="template-choice-label">Primary term report</strong></div>
+                <div><span>Shows</span><strong>Subjects, marks, grades, comments, notice</strong></div>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>What gets filled</h3>
+              <div class="report-builder">
+                <div><span>Marks</span><strong>From teacher sheets</strong></div>
+                <div><span>Grades</span><strong>Using school scale</strong></div>
+                <div><span>Comments</span><strong>Teacher and head teacher</strong></div>
+                <div><span>Parent link</span><strong>Sent after approval</strong></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="review" class="view" data-title="Review Results">
+          <div class="metric-grid compact">
+            <article class="metric-card"><span>Total learners</span><strong>89</strong><small>P7A and P7B</small></article>
+            <article class="metric-card"><span>Approved</span><strong>84</strong><small>Ready for parent preview</small></article>
+            <article class="metric-card warning"><span>Needs review</span><strong>3</strong><small>Teacher action required</small></article>
+            <article class="metric-card danger"><span>Errors</span><strong>2</strong><small>Cannot publish yet</small></article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h3>Learner review table</h3>
+                <p>Check missing marks, unusual scores, and teacher comments before parents receive links.</p>
+              </div>
+              <div class="toolbar">
+                <input id="review-search" placeholder="Search learners" />
+                <select id="review-status">
+                  <option value="all">All statuses</option>
+                  <option value="approved">Approved</option>
+                  <option value="needs-review">Needs review</option>
+                  <option value="error">Error</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Learner</th>
+                    <th>Class</th>
+                    <th>Stream</th>
+                    <th>Subjects</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="review-table-body"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <div class="split-grid">
+            <article class="panel">
+                <h3>Filled report list</h3>
+              <div class="preview-controls">
+                <select id="sheet-select"></select>
+                <span class="pill" id="preview-size">Sample class list</span>
+              </div>
+              <div class="table-wrap small"><table id="preview-table"></table></div>
+            </article>
+            <article class="panel">
+              <h3>Report check summary</h3>
+              <div id="summary" class="summary-grid"></div>
+              <div id="qa-note" class="hint">A parent link is only sent after the school approves the report.</div>
+            </article>
+          </div>
+          <button id="refresh" class="ghost hidden">Refresh preview</button>
+        </section>
+
+        <section id="parent" class="view" data-title="Parent Result Preview">
+          <h2 class="parent-mobile-heading">Parent Result Preview</h2>
+          <div class="parent-layout">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h3>Flexible report-card structure</h3>
+                  <p>This private mobile page is the emotional center of the product: official school identity, result ID, publish date, reviewed scores, comments, and a correction path.</p>
+                </div>
+              </div>
+
+              <label class="field">
+                Report template
+                <select id="report-template">
+                  <option value="primary">Primary term report</option>
+                  <option value="cbc">CBC competency report</option>
+                  <option value="ple">PLE summary</option>
+                  <option value="secondary">Secondary marksheet</option>
+                  <option value="minimal">Minimal parent link</option>
+                </select>
+              </label>
+
+              <div class="template-notes" id="template-notes"></div>
+
+              <div class="publish-checklist">
+                <h3>Publication controls</h3>
+                <label><input type="checkbox" checked /> Hide learner rank from parent view</label>
+                <label><input type="checkbox" checked /> Show school verification banner</label>
+                <label><input type="checkbox" checked /> Allow correction requests before final lock</label>
+                <label><input type="checkbox" /> Include downloadable PDF slip</label>
+              </div>
+            </article>
+
+            <article class="phone-frame" aria-label="Parent mobile result preview">
+              <div class="phone-card">
+                <div class="phone-topline">
+                  <strong>Private result link</strong>
+                  <span>RW-2026-0047</span>
+                </div>
+                <div class="school-header">
+                  <div class="school-mark">KV</div>
                   <div>
-                    <h2>Division Outcomes</h2>
-                    <p>How learners are distributed across divisions.</p>
+                    <strong>Hillside Primary School</strong>
+                    <span>Term 3, 2026 - Published 09 May</span>
                   </div>
-                  <button id="export-division" class="ghost export-ignore">Export chart</button>
+                </div>
+
+                <div class="verified">
+                  <span class="status-dot published"></span>
+                  Official result published by the school
+                </div>
+
+                <div class="learner-summary">
+                  <span>Abigael Nakato - P.7 Blue</span>
+                  <strong id="parent-overall">Distinction 1</strong>
+                  <small>Private parent result link. Individual ranking is hidden by default.</small>
+                </div>
+
+                <div id="parent-result-body"></div>
+
+                <div class="comment-box">
+                  <strong>Class teacher's comment</strong>
+                  <p>Sarah has shown consistent effort and strong reasoning in Mathematics. She should continue reading widely to strengthen comprehension.</p>
+                </div>
+
+                <div class="comment-box muted">
+                  <strong>School notice</strong>
+                  <p>Next term begins on 27 May 2026. Please contact the school office if any correction is needed.</p>
+                </div>
+
+                <div class="phone-actions">
+                  <button class="primary">Download result slip</button>
+                  <button class="ghost">Contact school</button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="links" class="view" data-title="Parent Links">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h3>Secure parent links</h3>
+                <p>Send, track, revoke, regenerate, or print access codes after approval.</p>
+              </div>
+              <button class="primary">Send selected links</button>
+            </div>
+            <div class="link-methods">
+              <button>SMS</button>
+              <button>WhatsApp</button>
+              <button>Email</button>
+              <button>Printed code</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Learner</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                    <th>Viewed</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="links-table-body"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="analytics" class="view" data-title="School Analytics">
+          <div class="metric-grid compact">
+            <article class="metric-card"><span>Average performance</span><strong>78.5%</strong><small>+3.2% from last term</small></article>
+            <article class="metric-card"><span>Distinction rate</span><strong>42%</strong><small>Aggregate only</small></article>
+            <article class="metric-card"><span>Total learners</span><strong>847</strong><small>Across active classes</small></article>
+            <article class="metric-card"><span>Public snapshot</span><strong>Ready</strong><small>No learner names included</small></article>
+          </div>
+
+          <div class="dashboard-controls">
+            <label>Success rate<select id="success-definition"><option>Standard</option><option>Strict</option></select></label>
+            <label>Include absentees<select id="include-x"><option>Exclude from rates</option><option>Include in rates</option></select></label>
+            <label>Division view<select id="division-view"><option>Percent</option><option>Counts</option></select></label>
+          </div>
+
+          <div class="analytics-grid">
+            <article class="panel chart-card">
+              <div class="panel-heading compact-heading">
+                <div>
+                  <h3>Cohort performance</h3>
+                  <p>Grade distribution across the reviewed batch.</p>
                 </div>
               </div>
               <div id="division-chart" class="chart-body"></div>
               <div id="division-legend" class="chart-legend"></div>
-            </div>
+            </article>
 
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Subject Mix</h2>
-                    <p>Distinction, credit, pass, and fail share by subject.</p>
-                  </div>
-                  <button id="export-subject" class="ghost export-ignore">Export chart</button>
+            <article class="panel chart-card">
+              <div class="panel-heading compact-heading">
+                <div>
+                  <h3>Subject strengths</h3>
+                  <p>Where learners are strongest and where support is needed.</p>
                 </div>
               </div>
               <div id="subject-chart" class="chart-body"></div>
               <div id="subject-legend" class="chart-legend"></div>
-              <div id="subject-note" class="chart-note"></div>
-            </div>
+              <div id="subject-note" class="hint"></div>
+            </article>
 
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Gender Parity</h2>
-                    <p>Division outcomes split by sex.</p>
-                  </div>
-                  <button id="export-parity" class="ghost export-ignore">Export chart</button>
-                </div>
-              </div>
-              <div id="parity-chart" class="chart-body"></div>
-              <div id="parity-legend" class="chart-legend"></div>
-            </div>
-
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Top Schools</h2>
-                    <p>Lowest average aggregate scores and strongest division performance.</p>
-                  </div>
-                  <button id="export-school" class="ghost export-ignore">Export chart</button>
+            <article class="panel chart-card">
+              <div class="panel-heading compact-heading">
+                <div>
+                  <h3>Class comparison</h3>
+                  <p>Performance by stream for leadership review.</p>
                 </div>
               </div>
               <div id="school-chart" class="chart-body"></div>
-            </div>
+            </article>
 
-            <div class="card chart-card customise-only">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Gender Gap by Subject</h2>
-                    <p>Distinction rate (Grades 1-2) for girls vs boys.</p>
-                  </div>
-                  <button id="export-gap" class="ghost export-ignore">Export chart</button>
-                </div>
-              </div>
-              <div id="gap-chart" class="chart-body"></div>
-              <div id="gap-legend" class="chart-legend"></div>
-              <div id="gap-note" class="chart-note"></div>
-            </div>
-
-            <div class="card chart-card wide customise-only" id="custom-builder">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Custom Visualizer</h2>
-                    <p>Build your own chart (inspired by DHIS2 Data Visualizer).</p>
-                  </div>
-                  <div class="custom-builder-header-actions">
-                    <button id="custom-reset" class="ghost export-ignore">Reset builder</button>
-                    <button id="custom-add" class="primary export-ignore">Add visualization</button>
-                  </div>
+            <article class="panel chart-card">
+              <div class="panel-heading compact-heading">
+                <div>
+                  <h3>Custom analytics pack</h3>
+                  <p>Subscription reports can be tailored for the school's questions.</p>
                 </div>
               </div>
               <div class="custom-builder">
-                <label>
-                  Builder mode
-                  <select id="custom-mode">
-                    <option value="quick" selected>Quick</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
-                </label>
-                <label>
-                  Chart type
-                  <select id="custom-type">
-                    <option value="bar" selected>Bar</option>
-                    <option value="stacked">Stacked</option>
-                    <option value="donut">Donut</option>
-                  </select>
-                </label>
-                <label>
-                  Value metric
-                  <select id="custom-metric">
-                    <option value="count" selected>Learner count</option>
-                    <option value="share">Share of learners (%)</option>
-                    <option value="success_rate">Success rate</option>
-                    <option value="top_rate">Top performers (Div 1)</option>
-                    <option value="at_risk_rate">At-risk rate (U / X)</option>
-                    <option value="avg_aggregate">Average aggregate</option>
-                    <option value="distinction_rate">Distinction rate (1-2)</option>
-                    <option value="fail_rate">Fail rate (9)</option>
-                  </select>
-                </label>
-                <label>
-                  Rows (dimension)
-                  <select id="custom-category">
-                    <option value="division" selected>Division</option>
-                    <option value="subject">Subject</option>
-                    <option value="school">School</option>
-                    <option value="parish">Parish</option>
-                    <option value="district">District</option>
-                    <option value="year">Year</option>
-                    <option value="sex">Sex</option>
-                  </select>
-                </label>
-                <label>
-                  Columns (series)
-                  <select id="custom-series">
-                    <option value="none" selected>None</option>
-                    <option value="sex">Sex</option>
-                    <option value="division">Division</option>
-                  </select>
-                </label>
-                <label class="custom-advanced">
-                  View (rates)
-                  <select id="custom-view">
-                    <option value="percent" selected>Percent</option>
-                    <option value="count">Count</option>
-                  </select>
-                </label>
-                <label class="custom-advanced">
-                  Include absentees (X)
-                  <select id="custom-include-x">
-                    <option value="exclude" selected>Exclude from rates</option>
-                    <option value="include">Include in rates</option>
-                  </select>
-                </label>
-                <label>
-                  Subject for rate
-                  <select id="custom-subject">
-                    <option value="eng" selected>English</option>
-                    <option value="sci">Science</option>
-                    <option value="sst">Social Studies</option>
-                    <option value="math">Mathematics</option>
-                  </select>
-                </label>
-                <label>
-                  Year
-                  <select id="custom-year"></select>
-                </label>
-                <label>
-                  Sex
-                  <select id="custom-sex">
-                    <option value="all" selected>All</option>
-                    <option value="F">Female</option>
-                    <option value="M">Male</option>
-                  </select>
-                </label>
-                <label class="custom-advanced">
-                  District filter
-                  <select id="custom-district"></select>
-                </label>
-                <label class="custom-advanced">
-                  Parish filter
-                  <select id="custom-parish"></select>
-                </label>
-                <label class="custom-advanced">
-                  School filter
-                  <select id="custom-school"></select>
-                </label>
-                <label class="custom-advanced">
-                  Top N
-                  <select id="custom-limit">
-                    <option value="0">All</option>
-                    <option value="5">5</option>
-                    <option value="10" selected>10</option>
-                    <option value="20">20</option>
-                  </select>
-                </label>
-                <label class="custom-advanced">
-                  Sort by
-                  <select id="custom-sort-by">
-                    <option value="value" selected>Value</option>
-                    <option value="name">Name</option>
-                  </select>
-                </label>
-                <label class="custom-advanced">
-                  Sort order
-                  <select id="custom-sort-dir">
-                    <option value="desc" selected>Descending</option>
-                    <option value="asc">Ascending</option>
-                  </select>
-                </label>
-                <label class="custom-advanced">
-                  Show data table
-                  <select id="custom-show-table">
-                    <option value="no" selected>No</option>
-                    <option value="yes">Yes</option>
-                  </select>
-                </label>
-                <label class="custom-advanced">
-                  Title
-                  <input id="custom-title" placeholder="Auto-generated title" />
-                </label>
+                <select id="custom-mode">
+                  <option value="quick">Quick</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+                <select id="custom-metric">
+                  <option value="learners">Learner count</option>
+                  <option value="distinction">Distinction rate</option>
+                  <option value="trend">Term trend</option>
+                </select>
+                <select id="custom-category">
+                  <option value="division">Division</option>
+                  <option value="subject">Subject</option>
+                  <option value="stream">Stream</option>
+                </select>
               </div>
-              <div id="custom-hint" class="chart-note"></div>
-            </div>
-
-            <div id="custom-charts" class="custom-grid customise-only"></div>
-
-            <div class="card chart-card wide customise-only">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>School Leaderboard</h2>
-                    <p>Division mix by school, shaded for quick comparison.</p>
-                  </div>
-                  <button id="export-heatmap" class="ghost export-ignore">Export chart</button>
-                </div>
-              </div>
-              <div class="heatmap-wrap">
-                <table id="heatmap-table" class="heatmap-table"></table>
-              </div>
-              <div id="heatmap-legend" class="chart-legend"></div>
-              <div id="heatmap-note" class="chart-note"></div>
-            </div>
-
-            <div class="card chart-card wide customise-only">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Subject Correlation</h2>
-                    <p>Compare subjects by school or org unit (lower is better).</p>
-                  </div>
-                  <button id="export-scatter" class="ghost export-ignore">Export chart</button>
-                </div>
-              </div>
-              <div class="scatter-controls">
-                <label>
-                  X subject
-                  <select id="scatter-x">
-                    <option value="eng" selected>English</option>
-                    <option value="sci">Science</option>
-                    <option value="sst">Social Studies</option>
-                    <option value="math">Mathematics</option>
-                  </select>
-                </label>
-                <label>
-                  Y subject
-                  <select id="scatter-y">
-                    <option value="eng">English</option>
-                    <option value="sci" selected>Science</option>
-                    <option value="sst">Social Studies</option>
-                    <option value="math">Mathematics</option>
-                  </select>
-                </label>
-                <label>
-                  Sex
-                  <select id="scatter-sex">
-                    <option value="all" selected>All</option>
-                    <option value="F">Female</option>
-                    <option value="M">Male</option>
-                  </select>
-                </label>
-                <label>
-                  Group level
-                  <select id="scatter-group">
-                    <option value="school" selected>School</option>
-                    <option value="parish">Parish</option>
-                    <option value="district">District</option>
-                  </select>
-                </label>
-              </div>
-              <div id="scatter-chart" class="scatter-chart"></div>
-              <div id="scatter-legend" class="chart-legend"></div>
-              <div id="scatter-note" class="chart-note"></div>
-            </div>
-
-            <div class="card chart-card wide customise-only">
-              <div class="chart-header">
-                <div class="chart-header-row">
-                  <div>
-                    <h2>Explore & Customize</h2>
-                    <p>Filter, compare, and reframe the view based on your questions.</p>
-                  </div>
-                  <button id="export-explore" class="ghost export-ignore">Export chart</button>
-                </div>
-              </div>
-
-              <div class="explore-controls">
-                <label>
-                  Year
-                  <select id="filter-year"></select>
-                </label>
-                <label>
-                  School search
-                  <input id="filter-school" list="school-list" placeholder="All schools" />
-                  <datalist id="school-list"></datalist>
-                </label>
-                <label>
-                  Sex
-                  <select id="filter-sex">
-                    <option value="all">All</option>
-                    <option value="F">Female</option>
-                    <option value="M">Male</option>
-                  </select>
-                </label>
-                <label>
-                  Metric
-                  <select id="explore-metric">
-                    <option value="division">Division outcomes</option>
-                    <option value="subject">Subject score distribution</option>
-                    <option value="school">Top schools</option>
-                  </select>
-                </label>
-                <label id="explore-subject-wrap">
-                  Subject
-                  <select id="explore-subject">
-                    <option value="eng">English</option>
-                    <option value="sci">Science</option>
-                    <option value="sst">Social Studies</option>
-                    <option value="math">Mathematics</option>
-                  </select>
-                </label>
-                <label>
-                  View
-                  <select id="explore-view">
-                    <option value="count">Counts</option>
-                    <option value="percent">Percent</option>
-                  </select>
-                </label>
-                <label>
-                  Breakdown
-                  <select id="explore-breakdown">
-                    <option value="none">None</option>
-                    <option value="sex">By sex</option>
-                  </select>
-                </label>
-                <label>
-                  Top N
-                  <select id="explore-limit">
-                    <option value="5">5</option>
-                    <option value="10" selected>10</option>
-                    <option value="15">15</option>
-                  </select>
-                </label>
-                <button id="explore-reset" class="ghost">Reset filters</button>
-              </div>
-
-              <div id="explore-chart" class="chart-body"></div>
-              <div id="explore-legend" class="chart-legend"></div>
-              <div id="explore-note" class="chart-note"></div>
-            </div>
+              <div id="custom-fields" class="hint">Examples: board report, public-safe marketing snapshot, subject intervention report.</div>
+            </article>
           </div>
+
+          <button id="dashboard-refresh" class="ghost hidden">Refresh dashboard</button>
+          <button id="download-dashboard" class="ghost hidden" disabled>Download workbook</button>
+          <button id="export-dashboard" class="ghost hidden" disabled>Export dashboard</button>
+          <button id="toggle-customise" class="ghost hidden">Customise</button>
+        </section>
+
+        <section id="subscription" class="view" data-title="Subscription And Demo Requests">
+          <div class="pricing-grid">
+            <article class="price-card">
+              <span class="badge">Basic</span>
+              <h3>Term Portal</h3>
+              <strong>UGX 500,000 <small>/ term</small></strong>
+              <p>For a school that wants clean term reports and secure parent result links.</p>
+              <ul>
+                <li>One active term</li>
+                <li>Teacher marks template</li>
+                <li>Missing marks checklist</li>
+                <li>Parent result links</li>
+                <li>Basic school summary</li>
+              </ul>
+            </article>
+
+            <article class="price-card featured">
+              <span class="badge">Most useful</span>
+              <h3>Analytics Plus</h3>
+              <strong>UGX 1,000,000 <small>/ term</small></strong>
+              <p>For schools that want parent links plus leadership analytics from the same results.</p>
+              <ul>
+                <li>Everything in Term Portal</li>
+                <li>Class and stream comparisons</li>
+                <li>Subject strengths and weak points</li>
+                <li>Leadership report pack</li>
+                <li>Setup support for staff</li>
+              </ul>
+            </article>
+
+            <article class="price-card">
+              <span class="badge">Premium</span>
+              <h3>Custom School Analytics</h3>
+              <strong>UGX 1,500,000 <small>/ term</small></strong>
+              <p>For schools that want a tailored analytics package and more hands-on support.</p>
+              <ul>
+                <li>Everything in Analytics Plus</li>
+                <li>Custom report-card format</li>
+                <li>Board and parent-meeting charts</li>
+                <li>School performance snapshot</li>
+                <li>Priority setup and review</li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="panel lead-panel">
+            <div>
+              <h3>Interested in using Results Wizard?</h3>
+              <p>Share your school details and what you want help with. We will follow up with a short walkthrough and pilot options.</p>
+            </div>
+            <form id="lead-form" class="lead-form">
+              <input name="school" placeholder="School name" required />
+              <input name="contact" placeholder="Contact person" required />
+              <input name="phone" placeholder="Phone or WhatsApp" required />
+              <input name="email" placeholder="Email optional" />
+              <select name="interest">
+                <option>Term Portal - UGX 500,000 / term</option>
+                <option>Analytics Plus - UGX 1,000,000 / term</option>
+                <option>Custom School Analytics - UGX 1,500,000 / term</option>
+              </select>
+              <textarea name="message" placeholder="Tell us what your school needs"></textarea>
+              <button class="primary" type="submit">Send interest</button>
+              <button class="ghost" type="button" id="export-leads">Download enquiries</button>
+            </form>
+            <div id="lead-status" class="hint"></div>
+          </article>
         </section>
       </main>
     </div>

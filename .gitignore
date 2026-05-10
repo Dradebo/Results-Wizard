@@ -6,3 +6,4 @@ npm-debug.log*
 *.swp
 playwright-report/
 test-results/
+.vercel

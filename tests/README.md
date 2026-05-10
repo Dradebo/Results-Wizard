@@ -13,6 +13,8 @@ If Chromium is missing locally, install it with:
 
 Optional ingest validation:
 
-- Web ingest test runs only when `PLE_SAMPLE_PDF` points to a real PDF.
+- Web ingest test runs only when `PLE_SAMPLE_PDF` points to a real or fixture PDF.
 - Example:
   `PLE_SAMPLE_PDF=/absolute/path/to/results.pdf npm run test:web`
+- Included sanitized fixture:
+  `PLE_SAMPLE_PDF=tests/fixtures/sample-ple-results.pdf npm run test:web`

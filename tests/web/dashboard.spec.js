@@ -2,48 +2,76 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 const fs = require("fs");
 
-test("dashboard shell and custom visualizer controls load", async ({ page }) => {
+test("portal demo shell and parent result workflow load", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "3. Dashboard" }).click();
 
-  await expect(page.getByRole("heading", { name: "Results Dashboard" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Customise" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Custom Visualizer" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Term 3, 2026 Dashboard" })).toBeVisible();
+  await expect(page.getByText("Active batch")).toBeVisible();
+  await expect(page.getByText("Term report progress")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Items to fix" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New results batch" }).first()).toBeVisible();
 
+  await page.getByRole("button", { name: "New Batch", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "New results batch", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Download template" })).toBeVisible();
+  await expect(page.getByText("Template columns")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Teacher submissions" })).toBeVisible();
+  await expect(page.getByText("Full class pending")).toBeVisible();
+
+  await page.locator('.nav-item[data-view="parent"]').click();
+  await expect(page.getByRole("heading", { name: "Parent Result Preview" })).toBeVisible();
+  await expect(page.locator(".phone-card .verified")).toContainText("Official result published by the school");
+  await expect(page.locator("#report-template")).toBeVisible();
+
+  await page.locator("#report-template").selectOption("cbc");
+  await expect(page.locator("#parent-overall")).toHaveText("Outstanding");
+  await expect(page.locator("#template-notes").getByText("CBC competency report")).toBeVisible();
+
+  await page.getByRole("button", { name: "Subscription" }).click();
+  await expect(page.getByRole("heading", { name: "Subscription And Demo Requests" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Analytics Plus" })).toBeVisible();
+  await expect(page.locator(".price-card").filter({ hasText: "Term Portal" }).getByText("UGX 500,000")).toBeVisible();
+  await expect(page.locator(".price-card").filter({ hasText: "Custom School Analytics" }).getByText("UGX 1,500,000")).toBeVisible();
+});
+
+test("portal analytics workflow renders", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Analytics/ }).click();
+
+  await expect(page.getByRole("heading", { name: "School Analytics" })).toBeVisible();
+  await expect(page.locator("#division-chart .chart-row").first()).toBeVisible();
+  await expect(page.locator("#subject-chart .chart-row").first()).toBeVisible();
+  await expect(page.locator("#school-chart .chart-row").first()).toBeVisible();
   await expect(page.locator("#custom-mode")).toBeVisible();
   await expect(page.locator("#custom-metric")).toBeVisible();
   await expect(page.locator("#custom-category")).toBeVisible();
-  await expect(page.locator("#custom-district")).toBeHidden();
-  await expect(page.locator("#custom-parish")).toBeHidden();
-  await expect(page.locator("#custom-school")).toBeHidden();
-
-  await page.locator("#custom-mode").selectOption("advanced");
-  await expect(page.locator("#custom-district")).toBeVisible();
-  await expect(page.locator("#custom-parish")).toBeVisible();
-  await expect(page.locator("#custom-school")).toBeVisible();
 });
 
-test("dashboard renders aggregate charts after PDF ingest", async ({ page }) => {
+test("mobile dashboard and parent preview do not horizontally overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const dashboardOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(dashboardOverflow).toBeLessThanOrEqual(1);
+
+  await page.locator('.nav-item[data-view="parent"]').click();
+  await expect(page.getByRole("heading", { name: "Parent Result Preview" })).toBeVisible();
+  const parentOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(parentOverflow).toBeLessThanOrEqual(1);
+});
+
+test("optional PLE PDF ingest still feeds review preview", async ({ page }) => {
   test.setTimeout(180_000);
   const envPdf = process.env.PLE_SAMPLE_PDF ? path.resolve(process.env.PLE_SAMPLE_PDF) : "";
   const samplePdf = envPdf && fs.existsSync(envPdf) ? envPdf : "";
   test.skip(!samplePdf, "Set PLE_SAMPLE_PDF to a real UNEB PDF to run ingest+render validation.");
 
   await page.goto("/");
+  await page.getByRole("button", { name: "New Batch", exact: true }).click();
   await page.locator("#pdf-input").setInputFiles(samplePdf);
-  await page.getByRole("button", { name: "Run conversion" }).click();
+  await page.getByRole("button", { name: "Check marks file" }).click();
 
-  await expect(page.locator("#status")).toHaveText("Conversion complete.", { timeout: 170_000 });
-  await page.getByRole("button", { name: "3. Dashboard" }).click();
-
-  await expect(page.locator("#division-chart .chart-row").first()).toBeVisible();
-  await expect(page.locator("#subject-chart .chart-row").first()).toBeVisible();
-  await expect(page.locator("#school-chart .chart-row").first()).toBeVisible();
-
-  await page.locator("#custom-metric").selectOption("distinction_rate");
-  await page.locator("#custom-category").selectOption("subject");
-  await page.locator("#custom-type").selectOption("donut");
-  await page.getByRole("button", { name: "Add visualization" }).click();
-
-  await expect(page.locator("#custom-charts .chart-card").first()).toBeVisible();
+  await expect(page.locator("#status")).toHaveText("Marks checked. Review the report list before sending links.", { timeout: 170_000 });
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await expect(page.locator("#preview-table tbody tr").first()).toBeVisible();
 });
