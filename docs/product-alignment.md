@@ -107,17 +107,23 @@ Core modules:
 
 ### 2. Parent Result Portal
 
-Mobile-first private result page.
+Mobile-first official private result page.
 
 Core modules:
 
 - secure link/code access
-- child result card
-- subject breakdown
+- school identity and verification header
+- learner summary / result ID block
+- subject or competency breakdown
 - class teacher comments
 - school notice/next steps
 - downloadable result slip
 - correction/support request
+
+Design goal:
+
+- feel like a legitimate school-issued artifact, not a generic app card
+- make privacy, verification, and correction flow visible without alarmist copy
 
 ### 3. Analytics Studio
 
@@ -144,10 +150,13 @@ Core modules:
 - map columns
 - validate records
 - fix issues
-- preview parent result cards
+- preview workbook rows and parent result pages
 - approve import
 
-PLE-specific parsing belongs here as `PLE adapter`.
+Current live emphasis:
+
+- CSV intake first for the school-owner walkthrough
+- report preview should feel like a real workbook/checklist, not a flat table
 
 ## Current Repo Fit
 

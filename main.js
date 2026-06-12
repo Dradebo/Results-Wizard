@@ -5,8 +5,9 @@ const fs = require("fs");
 const ExcelJS = require("exceljs");
 const { convertPdfsToExcel } = require("./ple_pdf_to_excel");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
-const APP_TITLE = "PLE Import Prep";
+const APP_TITLE = "Results Wizard";
 let mainWindow = null;
 const levelsCache = new Map();
 

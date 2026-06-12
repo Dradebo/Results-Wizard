@@ -454,18 +454,22 @@ The implementation is ready for outreach when:
 2. Start new batch: "The school uploads the marksheet, PDF, or table."
 3. Show detect/map/validate: "The system finds issues before parents see anything."
 4. Open review: "Teachers stay in control and approve results."
-5. Open parent preview: "Parents receive this official mobile result link."
+5. Open parent preview: "Parents receive this official private result page, with school identity, verification, and a clear correction path."
 6. Open parent links: "The school can send, track, revoke, or print access codes."
 7. Open analytics: "Leadership gets aggregate analytics from the same batch."
 8. Open subscription: "The base portal publishes results; the custom analytics subscription turns results into reports for decision-making and marketing."
 
-## Implementation Principle
+### Parent Preview Direction
 
-For now, build the interface as a credible product demo first. Avoid overengineering the backend before the first school conversations.
+The parent page should read like an official school-issued result artifact:
 
-Every implementation decision should answer:
+- school name, result ID, and publish date up top
+- clear learner/result summary
+- subject or competency rows with brief explanation text
+- teacher comment and school notice anchored below the result block
+- privacy and correction controls visible, but not noisy
 
-> Does this make a school understand, trust, and request Results Wizard faster?
+The page should feel trustworthy and deliberate, not like a placeholder phone mockup.
 
 ## Research Sources
 

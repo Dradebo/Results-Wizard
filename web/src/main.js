@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import { convertPdfsToWorkbook } from "./pdfToWorkbook.js";
 
 const state = {
@@ -24,14 +25,81 @@ const demoContext = {
   distinctionRate: 42
 };
 
+function parseCsv(text) {
+  const lines = String(text || "").trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const values = splitCsvLine(line);
+    const row = {};
+    headers.forEach((header, index) => { row[header] = values[index] ?? ""; });
+    return row;
+  });
+}
+
+function splitCsvLine(line) {
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    const next = line[i + 1];
+    if (ch === '"' && inQuotes && next === '"') { current += '"'; i += 1; continue; }
+    if (ch === '"') { inQuotes = !inQuotes; continue; }
+    if (ch === ',' && !inQuotes) { values.push(current); current = ''; continue; }
+    current += ch;
+  }
+  values.push(current);
+  return values;
+}
+
+function numericAverage(row) {
+  const values = Object.entries(row)
+    .filter(([key]) => /^(math|english|science|social|history|mark|score)/i.test(key))
+    .map(([, value]) => Number.parseFloat(String(value).replace(/[^0-9.]/g, "")))
+    .filter((n) => Number.isFinite(n));
+  if (!values.length) return "";
+  return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+}
+
+async function buildWorkbookFromRows(rows, schoolName, term) {
+  const workbook = new ExcelJS.Workbook();
+  const summary = workbook.addWorksheet("School Summary");
+  summary.addRow(["School", schoolName]);
+  summary.addRow(["Term", term]);
+  summary.addRow(["Learners", rows.length]);
+  const report = workbook.addWorksheet("Report Cards");
+  report.columns = [
+    { header: "Learner", key: "learner", width: 24 },
+    { header: "Class", key: "class", width: 10 },
+    { header: "Stream", key: "stream", width: 10 },
+    { header: "Parent email", key: "email", width: 28 },
+    { header: "Average", key: "average", width: 10 },
+    { header: "Comment", key: "comment", width: 42 }
+  ];
+  rows.forEach((row) => {
+    report.addRow({
+      learner: row.name || row.learner || "",
+      class: row.class || row.Class || "",
+      stream: row.stream || row.Stream || "",
+      email: row.email || row.parent_email || row.guardian_email || "",
+      average: numericAverage(row),
+      comment: row.comment || row["Teacher comment"] || ""
+    });
+  });
+  return workbook;
+}
+
 const learners = [
-  { name: "Nakato Sarah", initials: "Nakato S.", class: "P7", stream: "A", subjects: "8/8", status: "approved", action: "Preview", method: "WhatsApp", viewed: "Viewed 2h ago", rowNote: "Sample row from the active cohort", linkStatus: "sent" },
-  { name: "Kato Daniel", initials: "Kato D.", class: "P7", stream: "A", subjects: "7/8", status: "needs-review", action: "Resolve marks", method: "SMS", viewed: "Hold until marks are complete", rowNote: "Sample row from the active cohort", linkStatus: "needs-review" },
-  { name: "Achieng Maria", initials: "Achieng M.", class: "P7", stream: "B", subjects: "8/8", status: "approved", action: "Preview", method: "Email", viewed: "Viewed yesterday", rowNote: "Sample row from the active cohort", linkStatus: "viewed" },
-  { name: "Mugisha Paul", initials: "Mugisha P.", class: "P7", stream: "B", subjects: "6/8", status: "error", action: "Resolve blocker", method: "Printed code", viewed: "Blocked by missing English mark", rowNote: "Sample row from the active cohort", linkStatus: "blocked" },
-  { name: "Namutebi Joy", initials: "Namutebi J.", class: "P6", stream: "A", subjects: "8/8", status: "approved", action: "Preview", method: "WhatsApp", viewed: "Sent 4h ago", rowNote: "Sample row from the active cohort", linkStatus: "sent" },
-  { name: "Okello Brian", initials: "Okello B.", class: "S2", stream: "East", subjects: "10/10", status: "approved", action: "Preview", method: "SMS", viewed: "Viewed today", rowNote: "Sample row from the active cohort", linkStatus: "viewed" },
-  { name: "Namugenyi Ruth", initials: "Namugenyi R.", class: "S1", stream: "North", subjects: "9/10", status: "needs-review", action: "Add comment", method: "Email", viewed: "Waiting for class teacher comment", rowNote: "Sample row from the active cohort", linkStatus: "needs-review" }
+  { name: "Nakato Sarah", initials: "Nakato S.", class: "P7", stream: "A", subjects: "8/8", status: "approved", action: "Preview parent result", method: "WhatsApp", viewed: "Viewed 2h ago", rowNote: "Reviewed and ready for parent delivery", linkStatus: "sent" },
+  { name: "Kato Daniel", initials: "Kato D.", class: "P7", stream: "A", subjects: "7/8", status: "needs-review", action: "Fix before publish", method: "SMS", viewed: "Hold until marks are complete", rowNote: "Missing Mathematics mark before release", linkStatus: "needs-review" },
+  { name: "Achieng Maria", initials: "Achieng M.", class: "P7", stream: "B", subjects: "8/8", status: "approved", action: "Preview parent result", method: "Email", viewed: "Viewed yesterday", rowNote: "Parent opened the result link", linkStatus: "viewed" },
+  { name: "Mugisha Paul", initials: "Mugisha P.", class: "P7", stream: "B", subjects: "6/8", status: "error", action: "Fix blocker", method: "Printed code", viewed: "Blocked by missing English mark", rowNote: "Blocked until the class sheet is complete", linkStatus: "blocked" },
+  { name: "Namutebi Joy", initials: "Namutebi J.", class: "P6", stream: "A", subjects: "8/8", status: "approved", action: "Preview parent result", method: "WhatsApp", viewed: "Sent 4h ago", rowNote: "Ready for SMS or WhatsApp delivery", linkStatus: "sent" },
+  { name: "Okello Brian", initials: "Okello B.", class: "S2", stream: "East", subjects: "10/10", status: "approved", action: "Preview parent result", method: "SMS", viewed: "Viewed today", rowNote: "Aggregate-ready after school approval", linkStatus: "viewed" },
+  { name: "Namugenyi Ruth", initials: "Namugenyi R.", class: "S1", stream: "North", subjects: "9/10", status: "needs-review", action: "Add comment", method: "Email", viewed: "Waiting for class teacher comment", rowNote: "Teacher comment still required before approval", linkStatus: "needs-review" },
+  { name: "Nakato Sarah", initials: "Nakato S.", class: "P7", stream: "Blue", subjects: "8/8", status: "needs-review", action: "Merge duplicate", method: "WhatsApp", viewed: "Duplicate learner detected in uploaded roster", rowNote: "Duplicate learner warning: merge before publish", linkStatus: "needs-review" },
+  { name: "Ssenfuma Joel", initials: "Ssenfuma J.", class: "P7", stream: "Blue", subjects: "8/8", status: "needs-review", action: "Check grade mapping", method: "SMS", viewed: "Grade exceeds the school scale", rowNote: "Grade mapping warning: 102 needs confirmation", linkStatus: "correction-requested" }
 ];
 
 const batches = [
@@ -45,6 +113,7 @@ const teacherSubmissions = [
   { teacher: "Mr. Ssemakula", subject: "Mathematics", className: "P7 Blue", submitted: "Submitted", missing: "3 learners missing marks", status: "needs-review" },
   { teacher: "Ms. Atim", subject: "English", className: "P7 Blue", submitted: "Not submitted", missing: "Full class pending", status: "error" },
   { teacher: "Mr. Okello", subject: "Science", className: "P7 Blue", submitted: "Submitted", missing: "Comments needed", status: "needs-review" },
+  { teacher: "Records office", subject: "Roster QA", className: "P7 Blue", submitted: "Needs merge", missing: "Duplicate learner found", status: "needs-review" },
   { teacher: "Ms. Namusoke", subject: "Social Studies", className: "P7 Blue", submitted: "Ready", missing: "No gaps", status: "approved" },
   { teacher: "Class Teacher", subject: "Conduct and attendance", className: "P7 Blue", submitted: "Ready", missing: "No gaps", status: "approved" }
 ];
@@ -53,72 +122,94 @@ const missingMarks = [
   { learner: "Kato Daniel", className: "P7 Blue", issue: "Mathematics mark missing", owner: "Mr. Ssemakula" },
   { learner: "Mugisha Paul", className: "P7 Blue", issue: "English mark missing", owner: "Ms. Atim" },
   { learner: "Namugenyi Ruth", className: "P7 Blue", issue: "Science comment missing", owner: "Mr. Okello" },
-  { learner: "Achieng Maria", className: "P7 Blue", issue: "Attendance not filled", owner: "Class Teacher" }
+  { learner: "Achieng Maria", className: "P7 Blue", issue: "Attendance not filled", owner: "Class Teacher" },
+  { learner: "Nakato Sarah", className: "P7 Blue", issue: "Duplicate learner needs merge review", owner: "Records office" },
+  { learner: "Ssenfuma Joel", className: "P7 Blue", issue: "Grade mapping warning above school scale", owner: "Results officer" }
 ];
 
 const reportTemplates = {
   primary: {
+    title: "Primary Term Report",
+    subtitle: "Official school result page for parents and guardians",
+    badge: "Verified by school office",
+    footer: "Result issued by Kampala View Junior School. Corrections remain open for 5 days.",
     overall: "Distinction 1",
     notes: [
       ["Primary term report", "Subjects, marks, grades, aggregate, attendance, conduct, class teacher comment, head teacher comment, and next-term notice."],
       ["Default privacy", "Position and rank can be hidden unless the school explicitly enables them."]
     ],
     rows: [
-      ["Mathematics", "92", "D1"],
-      ["English", "81", "D2"],
-      ["Science", "88", "D1"],
-      ["Social Studies", "84", "D2"]
+      ["Mathematics", "92", "D1", "Excellent reasoning"],
+      ["English", "81", "D2", "Strong reading and expression"],
+      ["Science", "88", "D1", "Confident practical work"],
+      ["Social Studies", "84", "D2", "Good class participation"]
     ]
   },
   cbc: {
+    title: "CBC Competency Report",
+    subtitle: "Parent view for competencies, descriptors, and school comments",
+    badge: "CBC format",
+    footer: "Competency descriptors are explained in plain language for parents.",
     overall: "Outstanding",
     notes: [
       ["CBC competency report", "Competencies, score out of 3, descriptor, generic skills, values, subject teacher remarks, and attendance."],
       ["Parent clarity", "Descriptors are explained in plain language so parents understand the report."]
     ],
     rows: [
-      ["Mathematics competency", "2.8", "Outstanding"],
-      ["English communication", "2.4", "Moderate"],
-      ["Generic skills", "2.6", "Outstanding"],
-      ["Values and conduct", "2.5", "Outstanding"]
+      ["Mathematics competency", "2.8", "Outstanding", "Applies concepts with confidence"],
+      ["English communication", "2.4", "Moderate", "Understands meaning and responds clearly"],
+      ["Generic skills", "2.6", "Outstanding", "Shows initiative and self-management"],
+      ["Values and conduct", "2.5", "Outstanding", "Positive and respectful" ]
     ]
   },
   ple: {
+    title: "PLE Summary",
+    subtitle: "Official results page for final primary examination reporting",
+    badge: "Exam summary",
+    footer: "Verified school summary ready for parent delivery.",
     overall: "Division 1",
     notes: [
       ["PLE summary", "Index number, subject grades, aggregate, division, school verification, and school performance summary."],
       ["General product", "PLE is one report type. The same parent link works for term reports, mock exams, and school assessments."]
     ],
     rows: [
-      ["English", "2", "Distinction"],
-      ["Mathematics", "1", "Distinction"],
-      ["Science", "2", "Distinction"],
-      ["Social Studies", "2", "Distinction"]
+      ["English", "2", "Distinction", "Clear comprehension and composition"],
+      ["Mathematics", "1", "Distinction", "High accuracy and speed"],
+      ["Science", "2", "Distinction", "Strong practical understanding"],
+      ["Social Studies", "2", "Distinction", "Solid recall and application"]
     ]
   },
   secondary: {
+    title: "Secondary Marksheet",
+    subtitle: "Official school result page for secondary students",
+    badge: "Secondary format",
+    footer: "School-approved grades shown with learner-facing privacy controls.",
     overall: "Grade A",
     notes: [
       ["Secondary marksheet", "Coursework, end-of-term exam, total, grade, teacher remarks, and stream comparison."],
       ["Flexible columns", "Schools can keep their own grading scales and report language."]
     ],
     rows: [
-      ["Mathematics", "87", "A"],
-      ["English", "78", "B+"],
-      ["Biology", "82", "A"],
-      ["History", "74", "B"]
+      ["Mathematics", "87", "A", "Strong algebra and problem solving"],
+      ["English", "78", "B+", "Good grammar and comprehension"],
+      ["Biology", "82", "A", "Clear practical understanding"],
+      ["History", "74", "B", "Good recall with room to deepen analysis"]
     ]
   },
   minimal: {
+    title: "Minimal Parent Link",
+    subtitle: "Simple official result summary with school verification",
+    badge: "Low-friction link",
+    footer: "This is the minimal version for schools that want secure delivery first.",
     overall: "Approved",
     notes: [
       ["Minimal parent link", "A clean official result summary for schools that only want secure result communication first."],
       ["Upgrade path", "Detailed analytics and branded report cards can be added after the first pilot."]
     ],
     rows: [
-      ["Overall average", "84%", "Approved"],
-      ["Teacher review", "Complete", "Approved"],
-      ["School verification", "Published", "Official"]
+      ["Overall average", "84%", "Approved", "Parent-ready"],
+      ["Teacher review", "Complete", "Approved", "No missing marks"],
+      ["School verification", "Published", "Official", "Approved by office"]
     ]
   }
 };
@@ -155,6 +246,7 @@ function statusLabel(status) {
     blocked: "Blocked",
     sent: "Sent",
     viewed: "Viewed",
+    "correction-requested": "Correction requested",
     approved: "Approved",
     error: "Error"
   };
@@ -186,7 +278,7 @@ function updateTopbarActions(view = document.body.dataset.view || "dashboard") {
     review: {
       secondaryLabel: "Open parent preview",
       secondaryTarget: "parent",
-      primaryLabel: "Publish link workflow",
+      primaryLabel: "Prepare parent delivery",
       primaryTarget: "links"
     },
     parent: {
@@ -198,7 +290,7 @@ function updateTopbarActions(view = document.body.dataset.view || "dashboard") {
     links: {
       secondaryLabel: "Return to review",
       secondaryTarget: "review",
-      primaryLabel: "Request school demo",
+      primaryLabel: "Request pilot walkthrough",
       primaryTarget: "subscription"
     },
     analytics: {
@@ -210,7 +302,7 @@ function updateTopbarActions(view = document.body.dataset.view || "dashboard") {
     subscription: {
       secondaryLabel: "See active batch",
       secondaryTarget: "dashboard",
-      primaryLabel: "New results batch",
+      primaryLabel: "Review another batch",
       primaryTarget: "batch"
     }
   };
@@ -306,7 +398,7 @@ function renderReviewTable() {
       <td>${learner.stream}</td>
       <td>${learner.subjects}</td>
       <td><span class="status-pill status-${learner.status}">${statusLabel(learner.status)}</span></td>
-      <td><button class="ghost" data-view-trigger="parent">${learner.action}</button></td>
+      <td><button class="ghost" data-view-trigger="parent" title="Open the parent preview for this learner">${learner.action}</button></td>
     </tr>
   `).join("");
 }
@@ -346,8 +438,17 @@ function renderTemplate(templateKey = "primary") {
   const template = reportTemplates[templateKey] || reportTemplates.primary;
   const notes = $("#template-notes");
   const body = $("#parent-result-body");
+  const title = $("#parent-result-title");
+  const subline = $("#parent-result-subline");
+  const badge = $("#parent-result-badge");
+  const footer = $("#parent-result-footer");
   if ($("#parent-overall")) $("#parent-overall").textContent = template.overall;
   if ($("#template-choice-label")) $("#template-choice-label").textContent = $("#report-template")?.selectedOptions?.[0]?.textContent || "Primary term report";
+
+  if (title) title.textContent = template.title;
+  if (subline) subline.textContent = template.subtitle;
+  if (badge) badge.textContent = template.badge;
+  if (footer) footer.textContent = template.footer;
 
   if (notes) {
     notes.innerHTML = template.notes.map(([title, copy]) => `
@@ -361,11 +462,11 @@ function renderTemplate(templateKey = "primary") {
   if (body) {
     body.innerHTML = `
       <div class="${templateKey === "cbc" ? "competency-list" : "result-list"}">
-        ${template.rows.map(([subject, score, grade]) => `
+        ${template.rows.map(([subject, score, grade, detail]) => `
           <div class="${templateKey === "cbc" ? "competency-row" : "result-row"}">
             <div>
               <strong>${subject}</strong>
-              <span>${templateKey === "cbc" ? "Competency descriptor" : "Reviewed and approved"}</span>
+              <span>${detail || (templateKey === "cbc" ? "Competency descriptor" : "Reviewed and approved")}</span>
             </div>
             <div class="score-pill">${score}<br><span>${grade}</span></div>
           </div>
@@ -421,6 +522,9 @@ function renderPreview(previews = state.previews) {
   const select = $("#sheet-select");
   const table = $("#preview-table");
   const previewSize = $("#preview-size");
+  const strip = $("#preview-summary-strip");
+  const calloutTitle = $("#preview-callout-title");
+  const calloutBody = $("#preview-callout-body");
   if (!select || !table) return;
 
   const fallback = {
@@ -443,11 +547,32 @@ function renderPreview(previews = state.previews) {
   const current = source[currentName];
   const headers = current.headers || [];
   const rows = current.rows || [];
+  const statusCounts = rows.reduce((acc, row) => {
+    const status = String(row[row.length - 1] || "").toLowerCase();
+    acc.approved += Number(status.includes("approved"));
+    acc.review += Number(status.includes("review"));
+    acc.error += Number(status.includes("error"));
+    return acc;
+  }, { approved: 0, review: 0, error: 0 });
+  const sampleLearners = rows.slice(0, 3).map((row) => row[0]).filter(Boolean);
+
   table.innerHTML = `
     <thead><tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr></thead>
     <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
   `;
   if (previewSize) previewSize.textContent = `${rows.length} reports shown`;
+  if (strip) {
+    strip.innerHTML = [
+      ["Approved", statusCounts.approved],
+      ["Needs review", statusCounts.review],
+      ["Errors", statusCounts.error],
+      ["Sample learners", sampleLearners.length ? sampleLearners.join(" • ") : "—"]
+    ].map(([label, value]) => `<div class="preview-stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
+  }
+  if (calloutTitle && calloutBody) {
+    calloutTitle.textContent = currentName === "marksheet" ? "What this sheet says" : `${currentName} sheet at a glance`;
+    calloutBody.textContent = `${rows.length} report rows are visible here. ${statusCounts.error} are blocked, ${statusCounts.review} need human review, and ${statusCounts.approved} are ready to move forward.`;
+  }
 }
 
 function setStatus(message, tone = "info") {
@@ -487,6 +612,35 @@ async function runConversion() {
   }
 
   try {
+    const csvFiles = state.files.filter((file) => /\.csv$/i.test(file.name));
+    if (csvFiles.length) {
+      setStatus("Reading the uploaded school results and building report cards...");
+      renderStepper(2);
+      const text = await csvFiles[0].text();
+      const rows = parseCsv(text);
+      if (!rows.length) throw new Error("The CSV file does not contain any learner rows.");
+      const workbook = await buildWorkbookFromRows(rows, demoContext.schoolName, demoContext.activeBatch);
+      state.workbook = workbook;
+      state.previews = { "Report Cards": rows };
+      state.summary = {
+        rows: rows.length,
+        school: demoContext.schoolName,
+        term: demoContext.activeBatch,
+        mode: "csv"
+      };
+      state.buffer = await workbook.xlsx.writeBuffer();
+      renderPreview();
+      renderSummary();
+      renderStepper(4);
+      $("#download")?.removeAttribute("disabled");
+      $("#download-review")?.removeAttribute("disabled");
+      $("#download-dashboard")?.removeAttribute("disabled");
+      if ($("#download-hint")) $("#download-hint").textContent = "CSV results are ready for review and workbook export.";
+      setStatus(`Built report cards for ${rows.length} learners from CSV. Review before publish.`, "success");
+      setView("review");
+      return;
+    }
+
     setStatus("Checking marks and looking for missing entries...");
     renderStepper(2);
     const result = await convertPdfsToWorkbook(state.files, setProgress);
@@ -555,7 +709,7 @@ function exportLeads() {
     contact: "Head Teacher",
     phone: "+256 700 000000",
     email: "",
-    interest: "Analytics Plus - UGX 1,000,000 / term",
+    interest: "Pilot + Leadership Analytics - from UGX 450,000",
     message: "We want parent result links and school analytics.",
     createdAt: new Date().toISOString()
   }];
@@ -589,7 +743,7 @@ function bulkApproveReady() {
   learners.forEach((learner) => {
     if (learner.status === "needs-review") {
       learner.status = "approved";
-      learner.action = "Preview";
+      learner.action = "Preview parent result";
       learner.viewed = "Queued for link delivery";
       learner.linkStatus = "sent";
     }
@@ -612,7 +766,7 @@ function exportBoardSnapshot() {
 
 function customiseAnalyticsPack() {
   const note = $("#custom-fields");
-  if (note) note.textContent = "Custom analytics pack: leadership board report, public-safe marketing snapshot, and subject intervention report for the reviewed batch.";
+  if (note) note.textContent = "Planned analytics bundle: leadership board report, public-safe marketing snapshot, and subject intervention report for the reviewed batch.";
   const mode = $("#custom-mode");
   if (mode) mode.value = "advanced";
 }

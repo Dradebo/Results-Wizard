@@ -1,5 +1,5 @@
 {
-  "name": "ple-import-desktop",
+  "name": "results-wizard",
   "version": "0.1.0",
   "private": true,
   "main": "main.js",
@@ -7,6 +7,7 @@
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --publish=never",
+    "process:batch": "node scripts/process-batch.mjs",
     "test:web": "playwright test -c playwright.web.config.js",
     "test:desktop": "playwright test -c playwright.desktop.config.js",
     "test:e2e": "npm run test:web && npm run test:desktop"
@@ -14,6 +15,7 @@
   "dependencies": {
     "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
+    "nodemailer": "^8.0.11",
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
@@ -22,8 +24,8 @@
     "electron-builder": "^26.7.0"
   },
   "build": {
-    "appId": "com.ple.importprep",
-    "productName": "PLE Import Prep",
+    "appId": "com.resultswizard.portal",
+    "productName": "Results Wizard",
     "afterPack": "scripts/afterPack.js",
     "files": [
       "**/*"

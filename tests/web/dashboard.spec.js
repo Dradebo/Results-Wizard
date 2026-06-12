@@ -27,11 +27,11 @@ test("portal demo shell and parent result workflow load", async ({ page }) => {
   await expect(page.locator("#parent-overall")).toHaveText("Outstanding");
   await expect(page.locator("#template-notes").getByText("CBC competency report")).toBeVisible();
 
-  await page.getByRole("button", { name: "Subscription" }).click();
+  await page.getByRole("button", { name: "Pilot Plans" }).click();
   await expect(page.getByRole("heading", { name: "School Demo And Pilot Plans" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Analytics Plus" })).toBeVisible();
-  await expect(page.locator(".price-card").filter({ hasText: "Term Portal" }).getByText("UGX 500,000")).toBeVisible();
-  await expect(page.locator(".price-card").filter({ hasText: "Custom School Analytics" }).getByText("UGX 1,500,000")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pilot + Leadership Analytics" })).toBeVisible();
+  await expect(page.locator(".price-card").filter({ hasText: "Term Results Pilot" }).getByText("From UGX 300,000")).toBeVisible();
+  await expect(page.locator(".price-card").filter({ hasText: "Custom Setup And Analytics" }).getByText("Custom quote")).toBeVisible();
 });
 
 test("portal analytics workflow renders", async ({ page }) => {
@@ -67,7 +67,7 @@ test("CSV teacher marks ingest generates review preview and parent-ready workboo
   await page.goto("/");
   await page.getByRole("button", { name: "New Batch", exact: true }).click();
   await page.locator("#pdf-input").setInputFiles(sampleCsv);
-  await page.getByRole("button", { name: "Check marks file" }).click();
+  await page.getByRole("button", { name: "Review this results batch" }).click();
 
   await expect(page.locator("#status")).toHaveText("Marks checked. Review the report list before sending links.");
   await expect(page.locator("#summary")).toContainText("3");
@@ -89,7 +89,7 @@ test("optional PLE PDF ingest still feeds review preview", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "New Batch", exact: true }).click();
   await page.locator("#pdf-input").setInputFiles(samplePdf);
-  await page.getByRole("button", { name: "Check marks file" }).click();
+  await page.getByRole("button", { name: "Review this results batch" }).click();
 
   await expect(page.locator("#status")).toHaveText("Marks checked. Review the report list before sending links.", { timeout: 170_000 });
   await page.getByRole("button", { name: "Review", exact: true }).click();

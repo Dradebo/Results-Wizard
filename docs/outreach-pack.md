@@ -99,11 +99,11 @@ Sean
 
 ## WhatsApp / SMS Version
 
-Hi {{Name}}, I’m building Results Wizard for schools. It lets a school upload results, review them, send parents official private result links, and get aggregate analytics from the same batch. I’m looking for a few schools to pilot it this term. Can I send you a short demo link?
+Hi {{Name}}, I’m building Results Wizard for schools. It lets a school upload results, review them, send parents an official private result page, and get aggregate analytics from the same batch. I’m looking for a few schools to pilot it this term. Can I send you a short demo link?
 
 ## Follow-Up
 
-Hi {{Name}}, quick follow-up on Results Wizard. The main value is simple: parents get official result links, teachers reduce repetitive formatting work, and school leadership gets analytics from the same results batch. Would you be open to a 15-minute walkthrough?
+Hi {{Name}}, quick follow-up on Results Wizard. The main value is simple: parents get an official private result page, teachers reduce repetitive formatting work, and school leadership gets analytics from the same results batch. Would you be open to a 15-minute walkthrough?
 
 ## Lead Qualification Questions
 

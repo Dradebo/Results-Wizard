@@ -25,10 +25,10 @@
           <button class="nav-item active" data-view="dashboard"><span aria-hidden="true">D</span>Dashboard</button>
           <button class="nav-item" data-view="batch"><span aria-hidden="true">N</span>New Batch</button>
           <button class="nav-item" data-view="review"><span aria-hidden="true">R</span>Review</button>
-          <button class="nav-item" data-view="parent"><span aria-hidden="true">P</span>Parent View</button>
-          <button class="nav-item" data-view="links"><span aria-hidden="true">L</span>Links</button>
+          <button class="nav-item" data-view="parent"><span aria-hidden="true">P</span>Parent Preview</button>
+          <button class="nav-item" data-view="links"><span aria-hidden="true">L</span>Parent Links</button>
           <button class="nav-item" data-view="analytics"><span aria-hidden="true">A</span>Analytics</button>
-          <button class="nav-item" data-view="subscription"><span aria-hidden="true">S</span>Subscription</button>
+          <button class="nav-item" data-view="subscription"><span aria-hidden="true">S</span>Pilot Plans</button>
         </nav>
 
         <div class="sidebar-note">
@@ -86,7 +86,7 @@
                   <h3>Term report progress</h3>
                   <p>P7 Blue is nearly ready. Follow up with teachers, clear the flagged rows, confirm the parent view, then release official links.</p>
                 </div>
-                <button class="ghost" data-view-trigger="analytics">View full report</button>
+                <button class="ghost" data-view-trigger="analytics">Open analytics summary</button>
               </div>
 
               <div class="trend-chart" aria-label="Class performance trend">
@@ -162,7 +162,7 @@
                 <h3>New results batch</h3>
                 <p>Start with the marks file your school already has. Results Wizard structures the data, flags gaps, prepares a parent-ready workbook, and keeps a human approval checkpoint before publishing.</p>
               </div>
-              <button id="run" class="primary">Check marks file</button>
+              <button id="run" class="primary">Review this results batch</button>
             </div>
 
             <div id="batch-stepper" class="stepper" aria-label="Results batch workflow"></div>
@@ -270,16 +270,16 @@
                 <input id="pdf-input" type="file" accept=".pdf,.xlsx,.csv,application/pdf" multiple />
                 <span class="upload-icon">+</span>
                 <strong>Add marks file or teacher sheet</strong>
-                <small>Upload the completed template, teacher spreadsheets, CSV files, or PDF summaries. Nothing is sent to parents until the school approves it.</small>
+                <small>Use CSV first for the school-owner walkthrough. Spreadsheet, PDF, and pasted-table support can follow after this intake path feels right. Nothing is sent to parents yet.</small>
               </label>
 
               <div class="upload-status">
-                <div id="pdf-list" class="file-list empty">No files selected.</div>
-                <div id="status" class="status">Ready to check a marks file.</div>
+                <div id="pdf-list" class="file-list empty">No files selected. Upload a CSV, PDF, or teacher sheet to begin.</div>
+                <div id="status" class="status">Ready to review a results batch.</div>
                 <div class="plain-steps" aria-label="How marks are processed">
-                <div><strong>Read</strong><span>The uploaded file is matched to learners, subjects, marks, grades, comments, and attendance.</span></div>
-                <div><strong>Check</strong><span>Missing marks, missing comments, unusual scores, and pending teachers are surfaced for operator review.</span></div>
-                <div><strong>Prepare</strong><span>Approved entries move into the parent-ready workbook and link workflow after review.</span></div>
+                <div><strong>Read</strong><span>The file is turned into learner rows and checked for missing marks or obvious gaps.</span></div>
+                <div><strong>Check</strong><span>The system prepares a reviewable workbook and shows what still needs attention.</span></div>
+                <div><strong>Preview</strong><span>Approved rows land in the report-card workbook so you can inspect the UX before distribution.</span></div>
                 </div>
                 <div id="conversion-progress" class="progress-bar hidden">
                   <div id="conversion-progress-fill" class="progress-fill"></div>
@@ -287,8 +287,9 @@
                 <div class="button-row">
                   <button id="download" class="ghost" disabled>Download checked results</button>
                   <button id="download-review" class="ghost" disabled>Download report list</button>
+                  <button id="download-template" class="ghost" type="button">Download sample CSV</button>
                 </div>
-                <div id="download-hint" class="hint">Waiting for a marks file.</div>
+                <div id="download-hint" class="hint">Start with the sample CSV to see the full results ingestion flow.</div>
               </div>
             </div>
           </article>
@@ -361,7 +362,7 @@
                   <option value="needs-review">Needs review</option>
                   <option value="error">Error</option>
                 </select>
-                <button id="bulk-approve" class="primary" type="button">Approve all clean rows (demo)</button>
+                <button id="bulk-approve" class="primary" type="button">Approve reviewed results</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -388,33 +389,49 @@
                 <select id="sheet-select"></select>
                 <span class="pill" id="preview-size">Sample class list</span>
               </div>
-              <div class="table-wrap small"><table id="preview-table"></table></div>
-            </article>
-            <article class="panel">
-              <h3>Report check summary</h3>
-              <div id="summary" class="summary-grid"></div>
-              <div id="qa-note" class="hint">A parent link is only sent after the school approves the report.</div>
-            </article>
-          </div>
-          <div class="split-grid">
-            <article class="panel nested-panel">
-              <h3>Validation states in use</h3>
-              <div class="ops-checklist compact">
-                <div><strong>Needs review</strong><span>Teacher mark, comment, or attendance field still needs confirmation.</span></div>
-                <div><strong>Error</strong><span>The learner result cannot be published until the gap is fixed.</span></div>
-                <div><strong>Approved</strong><span>The report can move to parent preview and link generation.</span></div>
+              <div class="split-grid">
+                <article class="panel">
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Workbook preview</p>
+                      <h3>Filled report list</h3>
+                      <p>The preview should feel like a real school file: roster, grades, warning states, and the shape of the workbook that will go to approval.</p>
+                    </div>
+                    <span class="pill" id="preview-size">Sample class list</span>
+                  </div>
+                  <div class="preview-controls">
+                    <select id="sheet-select"></select>
+                  </div>
+                  <div class="preview-summary-strip" id="preview-summary-strip"></div>
+                  <div class="table-wrap small"><table id="preview-table"></table></div>
+                </article>
+                <article class="panel">
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Preview intelligence</p>
+                      <h3>Report check summary</h3>
+                    </div>
+                  </div>
+                  <div class="ops-checklist compact">
+                    <div><strong>Needs review</strong><span>Teacher mark, comment, or attendance field still needs confirmation.</span></div>
+                    <div><strong>Error</strong><span>The learner result cannot be published until the gap is fixed.</span></div>
+                    <div><strong>Approved</strong><span>The report can move to parent preview and link generation.</span></div>
+                  </div>
+                  <div class="preview-callout">
+                    <strong id="preview-callout-title">Preview narrative</strong>
+                    <p id="preview-callout-body">A school can read the batch at a glance: what is ready, what is blocked, and which rows need human attention before parent delivery.</p>
+                  </div>
+                </article>
+                <article class="panel nested-panel">
+                  <h3>High-risk checks</h3>
+                  <div class="mapping-list">
+                    <div><span>Duplicate learner</span><strong>Stop publishing and merge the correct record</strong></div>
+                    <div><span>Grade mismatch</span><strong>Check school scale before parent preview</strong></div>
+                    <div><span>Missing comment</span><strong>Return to class teacher before approval</strong></div>
+                  </div>
+                </article>
               </div>
-            </article>
-            <article class="panel nested-panel">
-              <h3>High-risk checks</h3>
-              <div class="mapping-list">
-                <div><span>Duplicate learner</span><strong>Stop publishing and merge the correct record</strong></div>
-                <div><span>Grade mismatch</span><strong>Check school scale before parent preview</strong></div>
-                <div><span>Missing comment</span><strong>Return to class teacher before approval</strong></div>
-              </div>
-            </article>
-          </div>
-          <button id="refresh" class="ghost hidden">Refresh preview</button>
+              <button id="refresh" class="ghost hidden">Refresh preview</button>
         </section>
 
         <section id="parent" class="view" data-title="Parent Result Preview">
@@ -423,8 +440,8 @@
             <article class="panel">
               <div class="panel-heading">
                 <div>
-                  <h3>Flexible report-card structure</h3>
-                  <p>This private mobile page is the emotional center of the product: official school identity, result ID, publish date, reviewed scores, comments, and a correction path.</p>
+                  <h3>Official school result preview</h3>
+                  <p>This private mobile page is the emotional center of the product: official school identity, result ID, school-approved publish date, reviewed scores, comments, and a correction path.</p>
                 </div>
               </div>
 
@@ -476,9 +493,14 @@
                 </div>
 
                 <div class="learner-summary">
-                  <span>Abigael Nakato - P.7 Blue</span>
+                  <span id="parent-result-title">Primary Term Report</span>
                   <strong id="parent-overall">Distinction 1</strong>
-                  <small>Private parent result link. Individual ranking is hidden by default.</small>
+                  <small id="parent-result-subline">Official school result page for parents and guardians</small>
+                </div>
+
+                <div class="parent-badge-row">
+                  <span class="pill" id="parent-result-badge">Verified by school office</span>
+                  <span class="pill subtle">Private by default</span>
                 </div>
 
                 <div class="parent-meta-grid">
@@ -499,6 +521,8 @@
                   <strong>School notice</strong>
                   <p>Next term begins on 27 May 2026. Please contact the school office if any correction is needed.</p>
                 </div>
+
+                <div class="phone-footer" id="parent-result-footer">Result issued by Kampala View Junior School. Corrections remain open for 5 days.</div>
 
                 <div class="phone-actions">
                   <button class="primary">Download result slip</button>
@@ -524,7 +548,7 @@
                 <h3>Secure parent links</h3>
                 <p>Send, track, revoke, regenerate, or print access codes after approval. This queue uses sample rows from the active 89-learner cohort.</p>
               </div>
-              <button class="primary">Open delivery queue</button>
+              <button class="primary">Prepare parent delivery</button>
             </div>
             <div class="toolbar">
               <input id="links-search" placeholder="Search learners or classes" />
@@ -537,10 +561,10 @@
               </select>
             </div>
             <div class="link-methods">
-              <button>Default: SMS</button>
-              <button>Default: WhatsApp</button>
-              <button>Default: Email</button>
-              <button>Default: Printed code</button>
+              <button type="button">Demo channel: SMS</button>
+              <button type="button">Demo channel: WhatsApp</button>
+              <button type="button">Demo channel: Email</button>
+              <button type="button">Demo channel: Printed code</button>
             </div>
             <div class="table-wrap">
               <table>
@@ -626,8 +650,8 @@
             <article class="panel chart-card">
               <div class="panel-heading compact-heading">
                 <div>
-                  <h3>Custom analytics pack</h3>
-                  <p>Subscription reports can be tailored once a school wants more than the core pilot workflow.</p>
+                  <h3>Subscription analytics options</h3>
+                  <p>Once a school trusts the pilot workflow, expand into leadership packs, public-safe snapshots, and subject intervention reporting.</p>
                 </div>
               </div>
               <div class="custom-builder">
@@ -653,7 +677,7 @@
           <div class="button-row analytics-actions">
             <button id="download-dashboard" class="ghost" disabled>Download workbook</button>
             <button id="export-dashboard" class="ghost">Export board snapshot</button>
-            <button id="toggle-customise" class="ghost">Customise analytics pack</button>
+            <button id="toggle-customise" class="ghost">Plan custom analytics</button>
           </div>
         </section>
 
@@ -673,12 +697,12 @@
 
           <div class="pricing-grid">
             <article class="price-card">
-              <span class="badge">Basic</span>
-              <h3>Term Portal</h3>
-              <strong>UGX 500,000 <small>/ term</small></strong>
-              <p>For a school that wants an operator-assisted pilot with clean term reports and secure parent result links.</p>
+              <span class="badge">Pilot entry</span>
+              <h3>Term Results Pilot</h3>
+              <strong>From UGX 300,000 <small>/ term batch</small></strong>
+              <p>Run one reviewed term-results batch through a parent-link workflow before committing to a broader rollout.</p>
               <ul>
-                <li>One active term</li>
+                <li>One active term batch</li>
                 <li>Teacher marks template</li>
                 <li>Missing marks checklist</li>
                 <li>Parent result links</li>
@@ -688,11 +712,11 @@
 
             <article class="price-card featured">
               <span class="badge">Most useful</span>
-              <h3>Analytics Plus</h3>
-              <strong>UGX 1,000,000 <small>/ term</small></strong>
-              <p>For schools that want the assisted pilot plus leadership analytics from the same reviewed results batch.</p>
+              <h3>Pilot + Leadership Analytics</h3>
+              <strong>From UGX 450,000 <small>/ term batch</small></strong>
+              <p>Use the same reviewed batch to deliver parent links plus leadership-ready analytics for decisions, meetings, and school communication.</p>
               <ul>
-                <li>Everything in Term Portal</li>
+                <li>Everything in Term Results Pilot</li>
                 <li>Class and stream comparisons</li>
                 <li>Subject strengths and weak points</li>
                 <li>Leadership report pack</li>
@@ -701,12 +725,12 @@
             </article>
 
             <article class="price-card">
-              <span class="badge">Premium</span>
-              <h3>Custom School Analytics</h3>
-              <strong>UGX 1,500,000 <small>/ term</small></strong>
-              <p>For schools that want tailored analytics, custom report layouts, and more hands-on rollout support.</p>
+              <span class="badge">Custom</span>
+              <h3>Custom Setup And Analytics</h3>
+              <strong>Custom quote <small>for unusual formats or deeper rollout</small></strong>
+              <p>For schools that need custom report layouts, unusual data formats, or more hands-on rollout support.</p>
               <ul>
-                <li>Everything in Analytics Plus</li>
+                <li>Everything in Pilot + Leadership Analytics</li>
                 <li>Custom report-card format</li>
                 <li>Board and parent-meeting charts</li>
                 <li>School performance snapshot</li>
@@ -738,9 +762,9 @@
                 <option>1,500+ learners</option>
               </select>
               <select name="interest">
-                <option>Term Portal - UGX 500,000 / term</option>
-                <option>Analytics Plus - UGX 1,000,000 / term</option>
-                <option>Custom School Analytics - UGX 1,500,000 / term</option>
+                <option>Term Results Pilot - from UGX 300,000</option>
+                <option>Pilot + Leadership Analytics - from UGX 450,000</option>
+                <option>Custom Setup And Analytics - custom quote</option>
               </select>
               <textarea name="message" placeholder="Tell us what your school needs"></textarea>
               <button class="primary" type="submit">Request a school demo</button>
