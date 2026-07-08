@@ -1,6 +1,6 @@
 # Results Wizard Product Alignment
 
-Updated: 2026-05-03.
+Updated: 2026-06-13.
 
 ## One-Liner
 
@@ -157,6 +157,13 @@ Current live emphasis:
 
 - CSV intake first for the school-owner walkthrough
 - report preview should feel like a real workbook/checklist, not a flat table
+Current parser reality:
+
+- The live CSV upload branch currently uses a simplified `web/src/main.js` parser, not the richer `parseTeacherCsvFile()` path in `web/src/pdfToWorkbook.js`.
+- This simplified path treats each CSV row as a report-card row, but the teacher marksheet template is one row per learner per subject.
+- The result is functional enough for a surface demo, but not logically sound enough for a pilot parser: learner names can map blank from the official `Learner name` header, subject rows are not grouped into learner reports, and learner averages/QA are incomplete.
+- Before presenting CSV intake as pilot-ready, route CSV through the canonical grouped-learner parser and test the sample marksheet as 3 learner reports, not 4 raw rows.
+
 
 ## Current Repo Fit
 

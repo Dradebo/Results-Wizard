@@ -204,7 +204,7 @@ const reportTemplates = {
     overall: "Approved",
     notes: [
       ["Minimal parent link", "A clean official result summary for schools that only want secure result communication first."],
-      ["Upgrade path", "Detailed analytics and branded report cards can be added after the first pilot."]
+      ["Upgrade path", "Detailed analytics and branded report cards can be added later."]
     ],
     rows: [
       ["Overall average", "84%", "Approved", "Parent-ready"],
@@ -284,13 +284,13 @@ function updateTopbarActions(view = document.body.dataset.view || "dashboard") {
     parent: {
       secondaryLabel: "Back to review",
       secondaryTarget: "review",
-      primaryLabel: "Open link workflow",
+      primaryLabel: "Open link flow",
       primaryTarget: "links"
     },
     links: {
       secondaryLabel: "Return to review",
       secondaryTarget: "review",
-      primaryLabel: "Request pilot walkthrough",
+      primaryLabel: "Request setup call",
       primaryTarget: "subscription"
     },
     analytics: {
@@ -506,7 +506,7 @@ function renderSummary(summary = state.summary) {
   const readyLinks = demoContext.approved;
   const cards = [
     ["Learners", summary?.learners ?? demoContext.totalLearners],
-    ["QA rows", summary?.qaRows ?? demoContext.needsReview + demoContext.blocked],
+    ["Checks needed", summary?.qaRows ?? demoContext.needsReview + demoContext.blocked],
     ["Unmatched", summary?.unmatchedSchools ?? 0],
     ["Ready links", summary?.readyLinks ?? readyLinks]
   ];
@@ -571,7 +571,7 @@ function renderPreview(previews = state.previews) {
   }
   if (calloutTitle && calloutBody) {
     calloutTitle.textContent = currentName === "marksheet" ? "What this sheet says" : `${currentName} sheet at a glance`;
-    calloutBody.textContent = `${rows.length} report rows are visible here. ${statusCounts.error} are blocked, ${statusCounts.review} need human review, and ${statusCounts.approved} are ready to move forward.`;
+    calloutBody.textContent = `${rows.length} workbook rows are visible here. ${statusCounts.error} are blocked, ${statusCounts.review} need human review, and ${statusCounts.approved} are ready to move forward.`;
   }
 }
 
@@ -606,44 +606,20 @@ function renderFileList(files) {
 
 async function runConversion() {
   if (!state.files.length) {
-    setStatus("Add a marks file first, or use the sample workflow shown below.", "error");
+    setStatus("Add a marks file first, or use the sample CSV below.", "error");
     setView("batch");
     return;
   }
 
   try {
-    const csvFiles = state.files.filter((file) => /\.csv$/i.test(file.name));
-    if (csvFiles.length) {
-      setStatus("Reading the uploaded school results and building report cards...");
-      renderStepper(2);
-      const text = await csvFiles[0].text();
-      const rows = parseCsv(text);
-      if (!rows.length) throw new Error("The CSV file does not contain any learner rows.");
-      const workbook = await buildWorkbookFromRows(rows, demoContext.schoolName, demoContext.activeBatch);
-      state.workbook = workbook;
-      state.previews = { "Report Cards": rows };
-      state.summary = {
-        rows: rows.length,
-        school: demoContext.schoolName,
-        term: demoContext.activeBatch,
-        mode: "csv"
-      };
-      state.buffer = await workbook.xlsx.writeBuffer();
-      renderPreview();
-      renderSummary();
-      renderStepper(4);
-      $("#download")?.removeAttribute("disabled");
-      $("#download-review")?.removeAttribute("disabled");
-      $("#download-dashboard")?.removeAttribute("disabled");
-      if ($("#download-hint")) $("#download-hint").textContent = "CSV results are ready for review and workbook export.";
-      setStatus(`Built report cards for ${rows.length} learners from CSV. Review before publish.`, "success");
-      setView("review");
-      return;
-    }
-
     setStatus("Checking marks and looking for missing entries...");
     renderStepper(2);
     const result = await convertPdfsToWorkbook(state.files, setProgress);
+    const sourceMode = state.files.some((file) => /\.csv$/i.test(file.name)) ? "csv" : "pdf";
+    if (result.summary) result.summary.mode = sourceMode;
+    if (result.summary && result.summary.learners === 0) {
+      throw new Error("The uploaded file did not produce any learner records.");
+    }
     state.workbook = result.workbook;
     state.previews = result.previews;
     state.summary = result.summary;
@@ -655,7 +631,7 @@ async function runConversion() {
     $("#download-review")?.removeAttribute("disabled");
     $("#download-dashboard")?.removeAttribute("disabled");
     if ($("#download-hint")) $("#download-hint").textContent = "Results are ready for school review before parent links are sent.";
-    setStatus("Marks checked. Review the report list before sending links.", "success");
+    setStatus("Marks checked. Review the workbook and parent preview before sending links.", "success");
     setView("review");
   } catch (error) {
     console.error(error);
@@ -700,7 +676,7 @@ function saveLead(event) {
   localStorage.setItem("rw-leads", JSON.stringify(state.leads));
   form.reset();
   const status = $("#lead-status");
-  if (status) status.textContent = "Thank you. Your school interest has been saved in this demo.";
+    if (status) status.textContent = "Thanks. Your school interest has been saved.";
 }
 
 function exportLeads() {
@@ -752,7 +728,7 @@ function bulkApproveReady() {
   renderLinksTable();
   renderSummary();
   const note = $("#qa-note");
-  if (note) note.textContent = "Ready rows were bulk-approved for demo purposes. Remaining errors still block publishing.";
+  if (note) note.textContent = "Ready rows were approved for the sample flow. Remaining errors still block publishing.";
 }
 
 function exportBoardSnapshot() {
@@ -766,7 +742,7 @@ function exportBoardSnapshot() {
 
 function customiseAnalyticsPack() {
   const note = $("#custom-fields");
-  if (note) note.textContent = "Planned analytics bundle: leadership board report, public-safe marketing snapshot, and subject intervention report for the reviewed batch.";
+  if (note) note.textContent = "Planned analytics bundle: leadership board report, school snapshot, and subject intervention report for the reviewed batch.";
   const mode = $("#custom-mode");
   if (mode) mode.value = "advanced";
 }
@@ -777,7 +753,7 @@ function updateCustomAnalyticsHint() {
   const category = $("#custom-category")?.selectedOptions?.[0]?.textContent || "Division";
   const note = $("#custom-fields");
   if (!note) return;
-  note.textContent = `${mode === "advanced" ? "Advanced" : "Quick"} pack: ${metric} by ${category}. Useful for board reports, public-safe marketing snapshots, and intervention planning.`;
+  note.textContent = `${mode === "advanced" ? "Advanced" : "Quick"} pack: ${metric} by ${category}. Useful for board reports, school snapshots, and intervention planning.`;
 }
 
 function bindEvents() {

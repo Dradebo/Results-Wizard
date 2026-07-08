@@ -1,8 +1,10 @@
 import ExcelJS from "exceljs";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+const PDF_WORKER_URL = null;
+if (PDF_WORKER_URL) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
+}
 
 const HEADER_LABELS = [
   "Year",
